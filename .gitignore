@@ -1,0 +1,24 @@
+# Python
+venv-pipeline/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Secrets: never committed
+.env
+*.pem
+*.p8
+*.key
+
+# Data: raw files live outside the repo
+data/
+*.csv
+*.parquet
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+# Private notes: learning and interview prep, never pushed
+notes/
