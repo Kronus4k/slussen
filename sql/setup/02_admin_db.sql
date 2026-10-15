@@ -1,0 +1,4 @@
+USE ROLE ACCOUNTADMIN;
+CREATE DATABASE IF NOT EXISTS ADMIN_DB
+  COMMENT = 'Account-level administration objects: budgets, quotas, cost controls';
+CREATE SCHEMA IF NOT EXISTS ADMIN_DB.COST_CONTROL;
