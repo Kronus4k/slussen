@@ -1,8 +1,31 @@
 # Decisions log
 
-D0.x decisions are in the project context file. Day decisions continue here.
+Architecture and platform decisions for Slussen, with the reasoning and the alternative that was rejected.
 
 | ID | Decision | Why | Alternative rejected |
 | --- | --- | --- | --- |
 | D1.1 | Repo `slussen`, project folder outside cloud-synced folders | No file locks on venv or Docker files | Documents (OneDrive-synced) |
 | D1.2 | Python 3.13 for `venv-pipeline`, alongside system default 3.14 | Broader library support (Snowflake connector, pyarrow, Airflow providers) and a supported Lambda runtime | Python 3.14 (too new for some dependencies) |
+| D1.3 | AWS Paid plan + AWS Organizations + IAM Identity Center (organization instance, single-region eu-north-1); permission sets AdministratorAccess, DataEngineer, View-Only | Permission sets need an organization instance; single-region keeps identity data in the EU and avoids a customer-managed KMS key | Free plan with IAM users (would have kept Free Tier credits, which expired when the Organization was created) |
+| D1.4 | Snowflake student trial: 120 days, $400 credits, Enterprise, AWS_EU_NORTH_1 | Four times the runway of the 30-day trial; Enterprise enables masking and row access policies | Standard 30-day trial |
+| D1.5 | Cortex is blocked on the student trial; add a payment method only shortly before the AI layer is built, behind guardrails | Delays billing exposure until Cortex is actually needed; the AI layer stays in scope | Adding the card at account setup; dropping the AI layer from scope |
+| D1.6 | Separate `ADMIN_DB.COST_CONTROL` for account-level cost objects (AI quota) | The data product database can be dropped or rebuilt without touching the guardrails | Cost objects inside `ECOM_DB` |
+| D1.7 | Hybrid infrastructure work: create with CLI commands saved in `scripts/bootstrap/`, verify in the console | Reproducible setup in Git while still learning visually; Bash scripts next, Terraform later | Console-only setup |
+| D1.8 | Gen1 warehouses (`GENERATION = '1'`) | Gen2 bills 1.35x on AWS; small queries bounded by the 60-second minimum don't recover that; candidate for the measured optimization | Default Gen2 |
+| D1.9 | The initial bootstrap loads Bronze directly from `landing/olist/` with `COPY INTO`, bypassing the contract gate | Unblocks profiling early; the validated Parquet path replaces it later and is reconciled against it | Waiting for the Fargate path before any profiling |
+| D1.10 | Bronze stores every data column as VARCHAR plus `_file_name`, `_file_row_number`, `_loaded_at`, `_source_team` | Exact copy with no type rejections (kept 23,995 leading-zero zips intact); every row traceable to a file line; typing happens in Silver | Typed Bronze tables |
+| D1.11 | All schemas `WITH MANAGED ACCESS`; extra `GOVERNANCE` schema for policies, tags and `market_access` | Grants only through the schema owner and access roles; policies kept apart from the data they protect | Regular schemas; policies inside Gold |
+| D1.12 | Users have `DEFAULT_SECONDARY_ROLES = ()`; permission tests run with `USE SECONDARY ROLES NONE` | Secondary roles defaulting to ALL made every role test pass for the wrong reason | Default secondary roles ALL |
+| D1.13 | Account ID, external ID and role ARNs stay out of the repo (runtime lookups, script arguments, SQL placeholders) | The repo can go public without exposing account identifiers | Hard-coded values |
+| D1.14 | Cortex Analyst is used only through agents or CoWork | The AI quota covers agents and CoWork but not standalone Analyst, so every AI call stays capped | Calling the Analyst REST API directly |
+| D1.15 | Feature branches and pull requests for all work after the initial bootstrap, squash merge; branches named by feature (`feature/data-contracts`) | Real review and CI workflow visible in the repo | Committing to `main` throughout |
+| D1.16 | Customer-managed KMS key `alias/slussen-data` with yearly rotation and S3 Bucket Key; lifecycle expires noncurrent versions after 30 days | Second lock on the data (S3 + KMS); Bucket Key cuts KMS requests; versioning without growing storage forever | SSE-S3 default encryption; versioning without lifecycle |
+| D1.17 | One AWS account: the Organization's management account also holds the workloads | One-person portfolio project; avoids multi-account overhead. Known trade-off against AWS best practice | Separate member account for workloads |
+| D1.18 | `DataEngineer` permission set = PowerUserAccess + `iam:PassRole` on `slussen-*` roles + IAM read; tightened later with IAM Access Analyzer policy generation | Resources didn't exist yet; can't change IAM, so it can't escalate itself. Start broad, measure, tighten | Hand-written least-privilege policy upfront |
+| D1.19 | `View-Only` permission set uses ViewOnlyAccess, not ReadOnlyAccess | Demos and screen-shares see configuration but no data (no S3 objects) | ReadOnlyAccess |
+| D1.20 | SSO session 8 h (default); permission set sessions: AdministratorAccess 4 h, DataEngineer 4 h, View-Only 1 h | One MFA sign-in per working day; leaked role credentials expire within hours | Longer sessions |
+| D1.21 | Snowflake integration role is read-only on `landing/olist/*` and `validated/*`, mirrored in `STORAGE_ALLOWED_LOCATIONS` | Snowflake never writes to the lake; `quarantine/` stays out of reach; two independent guards | Bucket-wide read/write |
+| D1.22 | Local settings in `.env` (gitignored), keys listed in `.env.example` (committed) | Reproducible setup without committing values | Hard-coded settings |
+| D1.23 | Private `notes/` folder gitignored; `docs/` is public | Learning and interview notes stay private; project documentation is part of the portfolio | Everything in the repo |
+| D1.24 | Cost guardrails: AWS budget $10/month; Snowflake resource monitor 25 credits/month (hard suspend, warehouses); account root budget 30 credits/month (alerts, all services); AI quota 15/month and 7/day per user with enforcement; Cortex only through `CORTEX_USER_ROLE` (revoked from PUBLIC) | No single control covers warehouses, serverless and AI together | One account-wide limit only |
+| D1.25 | Daily work runs with the least-privileged identity: AWS `slussen-de`, Snowflake default role `DATA_ENGINEER`; admin roles only by explicit switch | Mistakes and leaks are limited to what a daily role can do | Admin roles by default |
