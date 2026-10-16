@@ -22,3 +22,4 @@ data/
 Thumbs.db
 # Private notes: learning and interview prep, never pushed
 notes/
+local_data/
