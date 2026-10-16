@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import argparse
 import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -7,7 +7,7 @@ from pathlib import Path, PurePosixPath
 
 from pipeline_core.contracts import Contract, load_contract
 from pipeline_core.readers import ReadError, read_records
-from pipeline_core.storage import Store
+from pipeline_core.storage import LocalStore, S3Store, Store
 from pipeline_core.validator import BREAKING, Violation, validate_records
 from pipeline_core.writers import to_parquet
 
@@ -125,3 +125,20 @@ def process_batch(store: Store, success_key: str, contracts: list[Contract], now
     for key in data_keys + [success_key]:
         store.delete(key)
     return outcome
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run the contract gate for one batch.")
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--local", help="folder that mirrors the bucket root")
+    target.add_argument("--bucket", help="S3 bucket name")
+    parser.add_argument("--key", required=True, help="key of the batch's _SUCCESS marker")
+    parser.add_argument("--contracts", default="contracts", help="folder with contract YAML files")
+    args = parser.parse_args()
+
+    store = LocalStore(args.local) if args.local else S3Store(args.bucket)
+    outcome = process_batch(store, args.key, load_contracts(args.contracts))
+    print(json.dumps(outcome.to_dict(), indent=2))
+
+
+if __name__ == "__main__":
+    main()
