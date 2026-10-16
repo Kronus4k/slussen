@@ -7,7 +7,7 @@ name = "pipeline-core"
 version = "0.1.0"
 description = "Shared pipeline logic for Slussen: contracts, validation, utilities"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = ["pyyaml>=6.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]

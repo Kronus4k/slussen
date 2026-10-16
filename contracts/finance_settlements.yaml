@@ -1,0 +1,73 @@
+contract: finance_settlements
+version: 1.0.0
+description: Weekly payment settlements from the Finance team. One record per settled payment row.
+owner:
+  team: finance
+  contact: finance-data@slussen.example
+format: parquet
+location:
+  landing: landing/finance/settlements/
+  validated: validated/finance/settlements/
+  quarantine: quarantine/finance/settlements/
+  partition: dt=YYYY-MM-DD
+completeness:
+  success_marker: _SUCCESS
+sla:
+  cadence: weekly
+  deadline:
+    day: monday
+    time_utc: "06:00"
+primary_key: [settlement_id]
+columns:
+  - name: settlement_id
+    type: string
+    nullable: false
+    description: Unique settlement row id.
+  - name: payout_batch_id
+    type: string
+    nullable: false
+    description: Weekly payout batch this row belongs to.
+  - name: order_id
+    type: string
+    nullable: false
+    description: Order the payment belongs to.
+  - name: payment_sequential
+    type: integer
+    nullable: false
+    description: Payment row number within the order.
+  - name: payment_type
+    type: string
+    nullable: false
+    description: Payment method.
+  - name: gross_amount
+    type: decimal(12,2)
+    nullable: false
+    description: Amount paid by the customer in BRL.
+  - name: fee_amount
+    type: decimal(12,2)
+    nullable: false
+    description: Processing fee in BRL.
+  - name: net_amount
+    type: decimal(12,2)
+    nullable: false
+    description: Amount paid out, gross minus fee.
+  - name: currency
+    type: string
+    nullable: false
+    description: ISO 4217 code, BRL.
+  - name: payment_date
+    type: date
+    nullable: false
+    description: Date the customer paid.
+  - name: settlement_date
+    type: date
+    nullable: true
+    description: Date the money was paid out; null while pending.
+  - name: settlement_status
+    type: string
+    nullable: false
+    description: settled, pending or disputed.
+  - name: generated_at
+    type: timestamp
+    nullable: false
+    description: When Finance produced the file, UTC.

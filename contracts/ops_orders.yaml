@@ -1,0 +1,128 @@
+contract: ops_orders
+version: 1.0.0
+description: Order events from the Operations team. One record per event; an order appears once per state change.
+owner:
+  team: operations
+  contact: ops-data@slussen.example
+format: jsonl
+location:
+  landing: landing/ops/orders/
+  validated: validated/ops/orders/
+  quarantine: quarantine/ops/orders/
+  partition: dt=YYYY-MM-DD
+completeness:
+  success_marker: _SUCCESS
+sla:
+  cadence: every_4_hours
+  freshness_hours: 5
+primary_key: [event_id]
+columns:
+  - name: event_id
+    type: string
+    nullable: false
+    description: Unique id of this event (UUID).
+  - name: event_type
+    type: string
+    nullable: false
+    description: order_created, status_changed or order_canceled.
+  - name: event_ts
+    type: timestamp
+    nullable: false
+    description: When the event happened, UTC.
+  - name: order_id
+    type: string
+    nullable: false
+    description: Order identifier, stable across events.
+  - name: order_status
+    type: string
+    nullable: false
+    description: Order status after this event.
+  - name: customer_id
+    type: string
+    nullable: false
+    description: Per-order customer key (Olist semantics).
+  - name: customer_unique_id
+    type: string
+    nullable: false
+    description: Per-person customer key, used for repeat and cohort logic.
+  - name: customer_zip_code_prefix
+    type: string
+    nullable: false
+    pii: true
+    description: Five-digit zip prefix, leading zeros kept.
+  - name: customer_city
+    type: string
+    nullable: false
+    pii: true
+    description: Customer city.
+  - name: customer_state
+    type: string
+    nullable: false
+    pii: true
+    description: Two-letter Brazilian state code, used to derive the market.
+  - name: order_purchase_ts
+    type: timestamp
+    nullable: false
+    description: Purchase time, UTC.
+  - name: order_approved_ts
+    type: timestamp
+    nullable: true
+    description: Payment approval time, UTC.
+  - name: order_delivered_carrier_ts
+    type: timestamp
+    nullable: true
+    description: Handover to carrier, UTC.
+  - name: order_delivered_customer_ts
+    type: timestamp
+    nullable: true
+    description: Delivery to customer, UTC.
+  - name: order_estimated_delivery_date
+    type: date
+    nullable: false
+    description: Promised delivery date.
+  - name: items
+    type: array
+    nullable: false
+    description: Order lines, at least one.
+    fields:
+      - name: order_item_id
+        type: integer
+        nullable: false
+        description: Line number within the order, starting at 1.
+      - name: product_id
+        type: string
+        nullable: false
+        description: Product identifier.
+      - name: seller_id
+        type: string
+        nullable: false
+        description: Seller identifier.
+      - name: price
+        type: decimal(10,2)
+        nullable: false
+        description: Item price in BRL.
+      - name: freight_value
+        type: decimal(10,2)
+        nullable: false
+        description: Freight charged for the item in BRL.
+  - name: payments
+    type: array
+    nullable: true
+    description: Payment rows; null before payment is captured.
+    fields:
+      - name: payment_sequential
+        type: integer
+        nullable: false
+        description: Payment row number within the order.
+      - name: payment_type
+        type: string
+        nullable: false
+        description: credit_card, boleto, voucher or debit_card.
+      - name: payment_installments
+        type: integer
+        nullable: false
+        description: Number of installments.
+      - name: payment_value
+        type: decimal(10,2)
+        nullable: false
+        description: Amount of this payment row in BRL.
