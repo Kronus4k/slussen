@@ -1,0 +1,117 @@
+{
+  "Comment": "Slussen contract gate: one execution per completed batch (_SUCCESS marker)",
+  "QueryLanguage": "JSONata",
+  "StartAt": "ListBatchFiles",
+  "States": {
+    "ListBatchFiles": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:s3:listObjectsV2",
+      "Arguments": {
+        "Bucket": "{% $states.input.detail.bucket.name %}",
+        "Prefix": "{% $substringBefore($states.input.detail.object.key, '_SUCCESS') %}"
+      },
+      "Assign": {
+        "bucket": "{% $states.input.detail.bucket.name %}",
+        "key": "{% $states.input.detail.object.key %}"
+      },
+      "Output": {
+        "batchBytes": "{% $sum($states.result.Contents.Size) %}",
+        "fileCount": "{% $count($states.result.Contents) %}"
+      },
+      "Next": "RouteBySize"
+    },
+    "RouteBySize": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Condition": "{% $states.input.batchBytes > 104857600 %}",
+          "Next": "LargeBatchNotYetSupported"
+        }
+      ],
+      "Default": "ValidateBatch"
+    },
+    "LargeBatchNotYetSupported": {
+      "Type": "Fail",
+      "Error": "LargeBatch",
+      "Cause": "Batches over 100 MB are routed to ECS Fargate, which is not deployed yet."
+    },
+    "ValidateBatch": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "slussen-validator",
+        "Payload": {
+          "bucket": "{% $bucket %}",
+          "key": "{% $key %}"
+        }
+      },
+      "Output": "{% $states.result.Payload %}",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Output": {
+            "error": "{% $states.errorOutput.Error %}",
+            "cause": "{% $states.errorOutput.Cause %}"
+          },
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "CheckOutcome"
+    },
+    "CheckOutcome": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Condition": "{% $states.input.status = 'quarantined' %}",
+          "Next": "NotifyQuarantine"
+        }
+      ],
+      "Default": "BatchAccepted"
+    },
+    "BatchAccepted": {
+      "Type": "Succeed"
+    },
+    "NotifyQuarantine": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Arguments": {
+        "TopicArn": "__TOPIC_ARN__",
+        "Subject": "{% 'Slussen: batch quarantined (' & $states.input.contract & ')' %}",
+        "Message": "{% 'Contract: ' & $states.input.contract & ' v' & $states.input.version & '\\nBatch: ' & $states.input.batch & '\\nBreaking violations: ' & $states.input.breaking & '\\nViolation log: s3://' & $bucket & '/' & $states.input.audit_key %}"
+      },
+      "Next": "BatchQuarantined"
+    },
+    "BatchQuarantined": {
+      "Type": "Succeed"
+    },
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Arguments": {
+        "TopicArn": "__TOPIC_ARN__",
+        "Subject": "Slussen: contract gate failed",
+        "Message": "{% 'Key: ' & $key & '\\nError: ' & $states.input.error & '\\nCause: ' & $states.input.cause %}"
+      },
+      "Next": "GateFailed"
+    },
+    "GateFailed": {
+      "Type": "Fail",
+      "Error": "GateFailed",
+      "Cause": "The contract gate raised an error; the alert email has the details."
+    }
+  }
+}

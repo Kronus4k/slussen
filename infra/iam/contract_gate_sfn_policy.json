@@ -1,0 +1,29 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListBatchFiles",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::__BUCKET__",
+      "Condition": {
+        "StringLike": { "s3:prefix": ["landing/ops/*", "landing/finance/*"] }
+      }
+    },
+    {
+      "Sid": "InvokeGate",
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunction",
+      "Resource": [
+        "arn:aws:lambda:__REGION__:__ACCOUNT__:function:slussen-validator",
+        "arn:aws:lambda:__REGION__:__ACCOUNT__:function:slussen-validator:*"
+      ]
+    },
+    {
+      "Sid": "PublishAlerts",
+      "Effect": "Allow",
+      "Action": "sns:Publish",
+      "Resource": "arn:aws:sns:__REGION__:__ACCOUNT__:slussen-contract-alerts"
+    }
+  ]
+}
