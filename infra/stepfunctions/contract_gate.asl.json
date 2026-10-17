@@ -93,6 +93,11 @@
         "Subject": "{% 'Slussen: batch quarantined (' & $states.input.contract & ')' %}",
         "Message": "{% 'Contract: ' & $states.input.contract & ' v' & $states.input.version & '\\nBatch: ' & $states.input.batch & '\\nBreaking violations: ' & $states.input.breaking & '\\nViolation log: s3://' & $bucket & '/' & $states.input.audit_key %}"
       },
+      "Output": {
+        "status": "{% $states.input.status %}",
+        "batch": "{% $states.input.batch %}",
+        "alertMessageId": "{% $states.result.MessageId %}"
+      },
       "Next": "BatchQuarantined"
     },
     "BatchQuarantined": {

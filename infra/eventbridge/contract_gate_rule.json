@@ -1,0 +1,13 @@
+{
+  "source": ["aws.s3"],
+  "detail-type": ["Object Created"],
+  "detail": {
+    "bucket": { "name": ["slussen-lake-qwer"] },
+    "object": {
+      "key": [
+        { "wildcard": "landing/ops/*/_SUCCESS" },
+        { "wildcard": "landing/finance/*/_SUCCESS" }
+      ]
+    }
+  }
+}
