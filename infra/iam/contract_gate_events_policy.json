@@ -1,0 +1,11 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "StartContractGate",
+      "Effect": "Allow",
+      "Action": "states:StartExecution",
+      "Resource": "arn:aws:states:__REGION__:__ACCOUNT__:stateMachine:slussen-contract-gate"
+    }
+  ]
+}
