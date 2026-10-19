@@ -6,8 +6,8 @@ from pathlib import Path
 
 import yaml
 
-FORMATS = {"jsonl", "parquet"}
-SIMPLE_TYPES = {"string", "integer", "date", "timestamp", "boolean", "array"}
+FORMATS = {"jsonl", "parquet", "csv"}
+SIMPLE_TYPES = {"string", "integer", "date", "timestamp", "timestamp_ntz", "boolean", "array"}
 DECIMAL_RE = re.compile(r"^decimal\((\d+),(\d+)\)$")
 REQUIRED_KEYS = ("contract", "version", "format", "location", "completeness", "primary_key", "columns")
 
@@ -79,6 +79,8 @@ def load_contract(path: str | Path) -> Contract:
         raise ContractError(f"{path.name}: missing keys {missing}")
     if raw["format"] not in FORMATS:
         raise ContractError(f"{path.name}: unsupported format '{raw['format']}'")
+    if not isinstance(raw["primary_key"], list):
+        raise ContractError(f"{path.name}: primary_key must be a list (use [] when the source has no key)")
 
     columns = tuple(_parse_column(c, raw["contract"]) for c in raw["columns"])
     names = [c.name for c in columns]

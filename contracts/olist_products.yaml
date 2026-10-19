@@ -1,0 +1,54 @@
+contract: olist_products
+version: 1.0.0
+description: Historical Olist product catalogue. Column names keep the source spelling (lenght). One-off backfill.
+owner:
+  team: data-platform
+  contact: data-platform@slussen.example
+format: csv
+location:
+  landing: landing/olist/products/
+  validated: validated/olist/products/
+  quarantine: quarantine/olist/products/
+  partition: dt=YYYY-MM-DD
+completeness:
+  success_marker: _SUCCESS
+sla:
+  cadence: one_off_backfill
+primary_key: [product_id]
+columns:
+  - name: product_id
+    type: string
+    nullable: false
+    description: Product identifier.
+  - name: product_category_name
+    type: string
+    nullable: true
+    description: Category in Portuguese; null for about 610 products.
+  - name: product_name_lenght
+    type: integer
+    nullable: true
+    description: Characters in the product name (source spelling).
+  - name: product_description_lenght
+    type: integer
+    nullable: true
+    description: Characters in the product description (source spelling).
+  - name: product_photos_qty
+    type: integer
+    nullable: true
+    description: Number of product photos.
+  - name: product_weight_g
+    type: integer
+    nullable: true
+    description: Weight in grams.
+  - name: product_length_cm
+    type: integer
+    nullable: true
+    description: Length in centimetres.
+  - name: product_height_cm
+    type: integer
+    nullable: true
+    description: Height in centimetres.
+  - name: product_width_cm
+    type: integer
+    nullable: true
+    description: Width in centimetres.

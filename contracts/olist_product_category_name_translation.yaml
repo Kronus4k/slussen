@@ -1,0 +1,26 @@
+contract: olist_product_category_name_translation
+version: 1.0.0
+description: Portuguese to English product category names from the Olist dataset. Two categories are missing. One-off backfill.
+owner:
+  team: data-platform
+  contact: data-platform@slussen.example
+format: csv
+location:
+  landing: landing/olist/product_category_name_translation/
+  validated: validated/olist/product_category_name_translation/
+  quarantine: quarantine/olist/product_category_name_translation/
+  partition: dt=YYYY-MM-DD
+completeness:
+  success_marker: _SUCCESS
+sla:
+  cadence: one_off_backfill
+primary_key: [product_category_name]
+columns:
+  - name: product_category_name
+    type: string
+    nullable: false
+    description: Category name in Portuguese.
+  - name: product_category_name_english
+    type: string
+    nullable: false
+    description: Category name in English.
