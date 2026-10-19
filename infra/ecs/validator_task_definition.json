@@ -1,0 +1,32 @@
+{
+  "family": "slussen-validator",
+  "requiresCompatibilities": ["FARGATE"],
+  "networkMode": "awsvpc",
+  "cpu": "1024",
+  "memory": "4096",
+  "runtimePlatform": { "cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX" },
+  "taskRoleArn": "arn:aws:iam::__ACCOUNT__:role/slussen-validator-task",
+  "executionRoleArn": "arn:aws:iam::__ACCOUNT__:role/slussen-validator-task-execution",
+  "containerDefinitions": [
+    {
+      "name": "validator",
+      "image": "__ACCOUNT__.dkr.ecr.__REGION__.amazonaws.com/slussen-validator:__IMAGE_TAG__",
+      "essential": true,
+      "entryPoint": ["python3"],
+      "command": ["-m", "pipeline_core.gate", "--help"],
+      "workingDirectory": "/var/task",
+      "environment": [
+        { "name": "AWS_REGION", "value": "__REGION__" },
+        { "name": "AWS_DEFAULT_REGION", "value": "__REGION__" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/slussen-validator",
+          "awslogs-region": "__REGION__",
+          "awslogs-stream-prefix": "gate"
+        }
+      }
+    }
+  ]
+}

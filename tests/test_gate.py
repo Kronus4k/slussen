@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from pipeline_core.gate import GateError, load_contracts, process_batch
+from pipeline_core.gate import GateError, load_contracts, process_batch, run_and_report
 from pipeline_core.generators.ops_orders import batch_prefix, generate_batch, to_jsonl
 from pipeline_core.readers import read_records
 from pipeline_core.storage import MemoryStore
@@ -24,6 +24,10 @@ def contracts():
     return load_contracts(CONTRACTS_DIR)
 
 
+def _by_name(contracts, name):
+    return next(c for c in contracts if c.name == name)
+
+
 def _store(data=None, break_mode=None):
     if data is None:
         data = to_jsonl(generate_batch(20, NOW, seed=1, break_mode=break_mode))
@@ -36,6 +40,17 @@ def _audit_rows(store):
     return [json.loads(line) for line in store.get(AUDIT).decode("utf-8").splitlines()]
 
 
+class FakeStepFunctions:
+    def __init__(self):
+        self.calls = []
+
+    def send_task_success(self, **kwargs):
+        self.calls.append(("success", kwargs))
+
+    def send_task_failure(self, **kwargs):
+        self.calls.append(("failure", kwargs))
+
+
 def test_good_batch_goes_to_validated_as_parquet(contracts):
     store = _store()
     outcome = process_batch(store, LANDING + "_SUCCESS", contracts, NOW)
@@ -44,7 +59,7 @@ def test_good_batch_goes_to_validated_as_parquet(contracts):
     assert store.list_keys("landing/") == []
     assert outcome.audit_key is None
     records = read_records(store.get(VALIDATED + "part-00000.parquet"), "parquet")
-    assert validate_records(records, contracts[1]).passed
+    assert validate_records(records, _by_name(contracts, "ops_orders")).passed
 
 
 def test_broken_batch_goes_to_quarantine_with_audit_rows(contracts):
@@ -120,3 +135,28 @@ def test_cap_writes_summary_row_and_counts_add_up(contracts):
         ("type_mismatch", "customer_zip_code_prefix", None, 10)
     ]
     assert all(r["suppressed_count"] is None for r in rows if r["severity"] != "info")
+
+
+def test_task_token_reports_outcome(contracts):
+    client = FakeStepFunctions()
+    outcome = run_and_report(_store(), LANDING + "_SUCCESS", contracts, "token-1", client, NOW)
+    assert outcome.status == "validated"
+    [(kind, kwargs)] = client.calls
+    assert (kind, kwargs["taskToken"]) == ("success", "token-1")
+    assert json.loads(kwargs["output"]) == outcome.to_dict()
+
+
+def test_task_token_reports_failure_and_reraises(contracts):
+    client = FakeStepFunctions()
+    with pytest.raises(GateError):
+        run_and_report(MemoryStore(), "landing/unknown/feed/dt=2026-10-16/_SUCCESS", contracts, "token-2", client, NOW)
+    [(kind, kwargs)] = client.calls
+    assert (kind, kwargs["taskToken"], kwargs["error"]) == ("failure", "token-2", "GateError")
+    assert "no contract covers" in kwargs["cause"]
+
+
+def test_without_token_nothing_is_reported(contracts):
+    client = FakeStepFunctions()
+    outcome = run_and_report(_store(), LANDING + "_SUCCESS", contracts, None, client, NOW)
+    assert outcome.status == "validated"
+    assert client.calls == []

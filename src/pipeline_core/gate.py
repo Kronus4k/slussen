@@ -1,9 +1,12 @@
 from __future__ import annotations
 import argparse
 import json
+import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
+
+import boto3
 
 from pipeline_core.contracts import Contract, load_contract
 from pipeline_core.readers import ReadError, read_records
@@ -12,6 +15,7 @@ from pipeline_core.validator import BREAKING, WARNING, Violation, validate_recor
 from pipeline_core.writers import to_parquet
 
 AUDIT_PREFIX = "audit/contract_violations"
+MAX_FAILURE_CAUSE = 1000
 
 
 class GateError(ValueError):
@@ -130,6 +134,25 @@ def process_batch(store: Store, success_key: str, contracts: list[Contract], now
     return outcome
 
 
+def run_and_report(
+    store: Store,
+    success_key: str,
+    contracts: list[Contract],
+    task_token: str | None,
+    client,
+    now: datetime | None = None,
+) -> GateOutcome:
+    try:
+        outcome = process_batch(store, success_key, contracts, now)
+    except Exception as exc:
+        if task_token:
+            client.send_task_failure(taskToken=task_token, error=type(exc).__name__, cause=str(exc)[:MAX_FAILURE_CAUSE])
+        raise
+    if task_token:
+        client.send_task_success(taskToken=task_token, output=json.dumps(outcome.to_dict()))
+    return outcome
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the contract gate for one batch.")
     target = parser.add_mutually_exclusive_group(required=True)
@@ -137,10 +160,13 @@ def main() -> None:
     target.add_argument("--bucket", help="S3 bucket name")
     parser.add_argument("--key", required=True, help="key of the batch's _SUCCESS marker")
     parser.add_argument("--contracts", default="contracts", help="folder with contract YAML files")
+    parser.add_argument("--task-token", default=os.environ.get("TASK_TOKEN"),
+                        help="Step Functions task token; the outcome is reported to it (default: $TASK_TOKEN)")
     args = parser.parse_args()
 
     store = LocalStore(args.local) if args.local else S3Store(args.bucket)
-    outcome = process_batch(store, args.key, load_contracts(args.contracts))
+    client = boto3.client("stepfunctions") if args.task_token else None
+    outcome = run_and_report(store, args.key, load_contracts(args.contracts), args.task_token, client)
     print(json.dumps(outcome.to_dict(), indent=2))
 
 
