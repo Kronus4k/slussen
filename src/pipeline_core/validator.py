@@ -9,6 +9,7 @@ from pipeline_core.contracts import Column, Contract
 
 BREAKING = "breaking"
 WARNING = "warning"
+INFO = "info"
 MAX_ROWS_PER_RULE = 10
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -20,6 +21,7 @@ class Violation:
     column: str | None
     detail: str
     row: int | None = None
+    suppressed_count: int | None = None
 
 
 @dataclass
@@ -149,15 +151,24 @@ def _check_primary_key(records: list[dict], contract: Contract, out: list[Violat
 def _limit(violations: list[Violation]) -> tuple[list[Violation], int]:
     kept: list[Violation] = []
     counts: dict[tuple, int] = {}
-    suppressed = 0
     for v in violations:
         key = (v.rule, v.column)
         counts[key] = counts.get(key, 0) + 1
         if counts[key] <= MAX_ROWS_PER_RULE:
             kept.append(v)
-        else:
-            suppressed += 1
-    return kept, suppressed
+    summaries = [
+        Violation(
+            rule,
+            INFO,
+            column,
+            f"{n - MAX_ROWS_PER_RULE} more suppressed (cap {MAX_ROWS_PER_RULE} per rule and column)",
+            None,
+            n - MAX_ROWS_PER_RULE,
+        )
+        for (rule, column), n in counts.items()
+        if n > MAX_ROWS_PER_RULE
+    ]
+    return kept + summaries, sum(s.suppressed_count for s in summaries)
 
 
 def validate_records(records: list[dict], contract: Contract) -> ValidationResult:
