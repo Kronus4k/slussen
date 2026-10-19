@@ -25,15 +25,49 @@
       "Choices": [
         {
           "Condition": "{% $states.input.batchBytes > 50000000 %}",
-          "Next": "LargeBatchNotYetSupported"
+          "Next": "RunGateTask"
         }
       ],
       "Default": "ValidateBatch"
     },
-    "LargeBatchNotYetSupported": {
-      "Type": "Fail",
-      "Error": "LargeBatch",
-      "Cause": "Batches over 50 MB are routed to ECS Fargate, which is not deployed yet."
+    "RunGateTask": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.waitForTaskToken",
+      "Arguments": {
+        "Cluster": "arn:aws:ecs:__REGION__:__ACCOUNT__:cluster/slussen-gate",
+        "TaskDefinition": "slussen-validator",
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": ["__SUBNET_1__", "__SUBNET_2__", "__SUBNET_3__"],
+            "SecurityGroups": ["__SECURITY_GROUP__"],
+            "AssignPublicIp": "ENABLED"
+          }
+        },
+        "Overrides": {
+          "ContainerOverrides": [
+            {
+              "Name": "validator",
+              "Command": ["-m", "pipeline_core.gate", "--bucket", "{% $bucket %}", "--key", "{% $key %}", "--contracts", "/var/task/contracts"],
+              "Environment": [
+                { "Name": "TASK_TOKEN", "Value": "{% $states.context.Task.Token %}" }
+              ]
+            }
+          ]
+        }
+      },
+      "TimeoutSeconds": 900,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Output": {
+            "error": "{% $states.errorOutput.Error %}",
+            "cause": "{% $states.errorOutput.Cause %}"
+          },
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "CheckOutcome"
     },
     "ValidateBatch": {
       "Type": "Task",

@@ -13,7 +13,8 @@
       "Action": ["s3:GetObject", "s3:DeleteObject"],
       "Resource": [
         "arn:aws:s3:::__BUCKET__/landing/ops/*",
-        "arn:aws:s3:::__BUCKET__/landing/finance/*"
+        "arn:aws:s3:::__BUCKET__/landing/finance/*",
+        "arn:aws:s3:::__BUCKET__/landing/olist/*"
       ]
     },
     {
