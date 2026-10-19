@@ -24,7 +24,7 @@
       "Type": "Choice",
       "Choices": [
         {
-          "Condition": "{% $states.input.batchBytes > 104857600 %}",
+          "Condition": "{% $states.input.batchBytes > 50000000 %}",
           "Next": "LargeBatchNotYetSupported"
         }
       ],
@@ -33,7 +33,7 @@
     "LargeBatchNotYetSupported": {
       "Type": "Fail",
       "Error": "LargeBatch",
-      "Cause": "Batches over 100 MB are routed to ECS Fargate, which is not deployed yet."
+      "Cause": "Batches over 50 MB are routed to ECS Fargate, which is not deployed yet."
     },
     "ValidateBatch": {
       "Type": "Task",
@@ -91,7 +91,7 @@
       "Arguments": {
         "TopicArn": "__TOPIC_ARN__",
         "Subject": "{% 'Slussen: batch quarantined (' & $states.input.contract & ')' %}",
-        "Message": "{% 'Contract: ' & $states.input.contract & ' v' & $states.input.version & '\\nBatch: ' & $states.input.batch & '\\nBreaking violations: ' & $states.input.breaking & '\\nViolation log: s3://' & $bucket & '/' & $states.input.audit_key %}"
+        "Message": "{% 'Contract: ' & $states.input.contract & ' v' & $states.input.version & '\\nBatch: ' & $states.input.batch & '\\nBreaking violations: ' & $states.input.breaking & '\\nSuppressed by cap: ' & $states.input.suppressed & '\\nViolation log: s3://' & $bucket & '/' & $states.input.audit_key %}"
       },
       "Output": {
         "status": "{% $states.input.status %}",
