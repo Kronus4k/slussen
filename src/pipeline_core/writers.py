@@ -14,6 +14,7 @@ SIMPLE_ARROW_TYPES = {
     "boolean": pa.bool_(),
     "date": pa.date32(),
     "timestamp": pa.timestamp("us", tz="UTC"),
+    "timestamp_ntz": pa.timestamp("us"),
 }
 
 
@@ -37,7 +38,7 @@ def arrow_schema(contract: Contract) -> pa.Schema:
 def _normalize(value, column: Column):
     if value is None:
         return None
-    if column.type == "timestamp" and isinstance(value, str):
+    if column.type in ("timestamp", "timestamp_ntz") and isinstance(value, str):
         return datetime.fromisoformat(value)
     if column.type == "date" and isinstance(value, str):
         return date.fromisoformat(value)

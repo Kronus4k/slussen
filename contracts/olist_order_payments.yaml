@@ -1,0 +1,38 @@
+contract: olist_order_payments
+version: 1.0.0
+description: Historical Olist payment rows; an order can have several. One-off backfill.
+owner:
+  team: data-platform
+  contact: data-platform@slussen.example
+format: csv
+location:
+  landing: landing/olist/order_payments/
+  validated: validated/olist/order_payments/
+  quarantine: quarantine/olist/order_payments/
+  partition: dt=YYYY-MM-DD
+completeness:
+  success_marker: _SUCCESS
+sla:
+  cadence: one_off_backfill
+primary_key: [order_id, payment_sequential]
+columns:
+  - name: order_id
+    type: string
+    nullable: false
+    description: Order identifier.
+  - name: payment_sequential
+    type: integer
+    nullable: false
+    description: Payment row number within the order.
+  - name: payment_type
+    type: string
+    nullable: false
+    description: credit_card, boleto, voucher, debit_card or not_defined.
+  - name: payment_installments
+    type: integer
+    nullable: false
+    description: Number of installments.
+  - name: payment_value
+    type: decimal(10,2)
+    nullable: false
+    description: Amount of this payment row in BRL.

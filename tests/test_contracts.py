@@ -53,7 +53,7 @@ def test_pii_columns_flagged():
 @pytest.mark.parametrize(
     "overrides, message",
     [
-        ({"format": "csv"}, "unsupported format"),
+        ({"format": "xml"}, "unsupported format"),
         ({"columns": [{"name": "id", "type": "uuid", "nullable": False}]}, "unknown type"),
         ({"primary_key": ["order_id"]}, "is not a column"),
         ({"columns": [{"name": "id", "type": "string", "nullable": True}]}, "must not be nullable"),
