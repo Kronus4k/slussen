@@ -3,6 +3,8 @@ setlocal
 set PROFILE=slussen-de
 set REGION=eu-north-1
 set NAME=slussen-contract-gate
+set SINCE=%~1
+if "%SINCE%"=="" set SINCE=10m
 
 for /f %%a in ('aws sts get-caller-identity --profile %PROFILE% --query Account --output text') do set ACCOUNT=%%a
 set SM_ARN=arn:aws:states:%REGION%:%ACCOUNT%:stateMachine:%NAME%
@@ -14,5 +16,6 @@ aws stepfunctions describe-execution --execution-arn %EXEC_ARN% --profile %PROFI
 aws stepfunctions describe-execution --execution-arn %EXEC_ARN% --profile %PROFILE% --region %REGION% --query input --output text
 aws stepfunctions get-execution-history --execution-arn %EXEC_ARN% --reverse-order --max-results 8 --profile %PROFILE% --region %REGION% --query "events[].[id, type, stateEnteredEventDetails.name]" --output text
 aws stepfunctions get-execution-history --execution-arn %EXEC_ARN% --profile %PROFILE% --region %REGION% --query "events[?type=='TaskFailed'].taskFailedEventDetails.[resourceType, error, cause]" --output text
-aws logs tail /aws/lambda/slussen-validator --since 2h --profile %PROFILE% --region %REGION% --format short
+echo --- Lambda logs, last %SINCE% ---
+aws logs tail /aws/lambda/slussen-validator --since %SINCE% --profile %PROFILE% --region %REGION% --format short
 endlocal

@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 from pipeline_core.contracts import Contract, load_contract
 from pipeline_core.readers import ReadError, read_records
 from pipeline_core.storage import LocalStore, S3Store, Store
-from pipeline_core.validator import BREAKING, Violation, validate_records
+from pipeline_core.validator import BREAKING, WARNING, Violation, validate_records
 from pipeline_core.writers import to_parquet
 
 AUDIT_PREFIX = "audit/contract_violations"
@@ -28,6 +28,7 @@ class GateOutcome:
     records: int = 0
     breaking: int = 0
     warnings: int = 0
+    suppressed: int = 0
     written: list[str] = field(default_factory=list)
     audit_key: str | None = None
 
@@ -60,6 +61,7 @@ def _audit_lines(findings, contract: Contract, outcome: GateOutcome, detected_at
             "column_name": v.column,
             "row_number": v.row,
             "detail": v.detail,
+            "suppressed_count": v.suppressed_count,
         }
         for key, v in findings
     ]
@@ -96,11 +98,12 @@ def process_batch(store: Store, success_key: str, contracts: list[Contract], now
             continue
         result = validate_records(records, contract)
         outcome.records += len(records)
+        outcome.suppressed += result.suppressed
         findings.extend((key, v) for v in result.violations)
         parsed[key] = records
 
     outcome.breaking = sum(1 for _, v in findings if v.severity == BREAKING)
-    outcome.warnings = len(findings) - outcome.breaking
+    outcome.warnings = sum(1 for _, v in findings if v.severity == WARNING)
 
     if outcome.breaking:
         outcome.status = "quarantined"
@@ -125,6 +128,7 @@ def process_batch(store: Store, success_key: str, contracts: list[Contract], now
     for key in data_keys + [success_key]:
         store.delete(key)
     return outcome
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the contract gate for one batch.")

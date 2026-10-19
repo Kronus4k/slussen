@@ -1,20 +1,12 @@
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pytest
 
-from pipeline_core.contracts import load_contract
 from pipeline_core.generators.ops_orders import generate_batch, to_jsonl, write_batch
 from pipeline_core.readers import read_records
 from pipeline_core.validator import validate_records
 
-CONTRACTS = Path(__file__).resolve().parents[1] / "contracts"
 NOW = datetime(2026, 10, 16, 8, 0, tzinfo=timezone.utc)
-
-
-@pytest.fixture(scope="module")
-def ops():
-    return load_contract(CONTRACTS / "ops_orders.yaml")
 
 
 def _validate(records, contract):

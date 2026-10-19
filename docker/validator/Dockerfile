@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/python:3.13
+FROM public.ecr.aws/lambda/python:3.13@sha256:d5d5c74e3639a01fac254c9334a60604aa50327aa122b3ec26151e055a06a6a0
 
 COPY pyproject.toml /tmp/build/
 COPY src /tmp/build/src

@@ -17,9 +17,10 @@ CREATE TABLE IF NOT EXISTS CONTRACT_VIOLATIONS (
     detail            VARCHAR,
     _file_name        VARCHAR,
     _file_row_number  NUMBER,
-    _loaded_at        TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP()
+    _loaded_at        TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP(),
+    suppressed_count  NUMBER(38,0) COMMENT 'Findings dropped by the cap of 10 per rule and column; set on info summary rows, NULL on real findings'
 )
-COMMENT = 'One row per data contract finding from the S3 contract gate: breaking violations that quarantined a batch and warnings on accepted batches. Loaded from s3 audit/contract_violations/.';
+COMMENT = 'One row per data contract finding from the S3 contract gate: breaking violations that quarantined a batch, warnings on accepted batches, and info rows counting findings suppressed by the cap. Loaded from s3 audit/contract_violations/.';
 
 CREATE FILE FORMAT IF NOT EXISTS FF_JSONL
     TYPE = JSON

@@ -102,3 +102,21 @@ def test_marker_without_data_is_quarantined(contracts):
 def test_bad_keys_are_rejected(contracts, key, message):
     with pytest.raises(GateError, match=message):
         process_batch(MemoryStore(), key, contracts, NOW)
+
+
+def test_cap_writes_summary_row_and_counts_add_up(contracts):
+    records = list(generate_batch(20, NOW, seed=1))
+    for record in records:
+        record["customer_zip_code_prefix"] = 1310
+    records[0]["discount_code"] = "BF10"
+    store = _store(data=to_jsonl(records))
+    outcome = process_batch(store, LANDING + "_SUCCESS", contracts, NOW)
+    assert (outcome.status, outcome.breaking, outcome.warnings, outcome.suppressed) == ("quarantined", 10, 1, 10)
+    assert outcome.breaking + outcome.warnings + outcome.suppressed == 21
+    rows = _audit_rows(store)
+    assert len(rows) == 12
+    info = [r for r in rows if r["severity"] == "info"]
+    assert [(r["rule"], r["column_name"], r["row_number"], r["suppressed_count"]) for r in info] == [
+        ("type_mismatch", "customer_zip_code_prefix", None, 10)
+    ]
+    assert all(r["suppressed_count"] is None for r in rows if r["severity"] != "info")
