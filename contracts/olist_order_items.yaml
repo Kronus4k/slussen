@@ -1,0 +1,46 @@
+contract: olist_order_items
+version: 1.0.0
+description: Historical Olist order lines, one row per item in an order. One-off backfill.
+owner:
+  team: data-platform
+  contact: data-platform@slussen.example
+format: csv
+location:
+  landing: landing/olist/order_items/
+  validated: validated/olist/order_items/
+  quarantine: quarantine/olist/order_items/
+  partition: dt=YYYY-MM-DD
+completeness:
+  success_marker: _SUCCESS
+sla:
+  cadence: one_off_backfill
+primary_key: [order_id, order_item_id]
+columns:
+  - name: order_id
+    type: string
+    nullable: false
+    description: Order identifier.
+  - name: order_item_id
+    type: integer
+    nullable: false
+    description: Line number within the order, starting at 1.
+  - name: product_id
+    type: string
+    nullable: false
+    description: Product identifier.
+  - name: seller_id
+    type: string
+    nullable: false
+    description: Seller identifier.
+  - name: shipping_limit_date
+    type: timestamp_ntz
+    nullable: false
+    description: Latest handover time for the seller, source local time without zone.
+  - name: price
+    type: decimal(10,2)
+    nullable: false
+    description: Item price in BRL.
+  - name: freight_value
+    type: decimal(10,2)
+    nullable: false
+    description: Freight charged for the item in BRL.

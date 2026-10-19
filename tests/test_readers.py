@@ -85,5 +85,6 @@ def test_corrupt_parquet_raises():
 
 
 def test_unknown_format_raises():
-    with pytest.raises(ReadError, match="no reader for format 'csv'"):
+    with pytest.raises(ReadError, match="no reader for format 'xml'"):
+        read_records(b"<a>1</a>", "xml")
         read_records(b"a,b\n1,2\n", "csv")

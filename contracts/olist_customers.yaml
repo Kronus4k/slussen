@@ -1,0 +1,41 @@
+contract: olist_customers
+version: 1.0.0
+description: Historical Olist customers, one row per order-level customer id. One-off backfill.
+owner:
+  team: data-platform
+  contact: data-platform@slussen.example
+format: csv
+location:
+  landing: landing/olist/customers/
+  validated: validated/olist/customers/
+  quarantine: quarantine/olist/customers/
+  partition: dt=YYYY-MM-DD
+completeness:
+  success_marker: _SUCCESS
+sla:
+  cadence: one_off_backfill
+primary_key: [customer_id]
+columns:
+  - name: customer_id
+    type: string
+    nullable: false
+    description: Per-order customer key (Olist semantics).
+  - name: customer_unique_id
+    type: string
+    nullable: false
+    description: Per-person customer key, used for repeat and cohort logic.
+  - name: customer_zip_code_prefix
+    type: string
+    nullable: false
+    pii: true
+    description: Five-digit zip prefix, leading zeros kept.
+  - name: customer_city
+    type: string
+    nullable: false
+    pii: true
+    description: Customer city.
+  - name: customer_state
+    type: string
+    nullable: false
+    pii: true
+    description: Two-letter Brazilian state code, used to derive the market.

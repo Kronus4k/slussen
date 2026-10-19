@@ -1,0 +1,38 @@
+contract: olist_geolocation
+version: 1.0.0
+description: Historical Olist zip-code coordinates. The source has no key (about 262k exact duplicate rows), so primary_key is empty and rows land as sent. One-off backfill.
+owner:
+  team: data-platform
+  contact: data-platform@slussen.example
+format: csv
+location:
+  landing: landing/olist/geolocation/
+  validated: validated/olist/geolocation/
+  quarantine: quarantine/olist/geolocation/
+  partition: dt=YYYY-MM-DD
+completeness:
+  success_marker: _SUCCESS
+sla:
+  cadence: one_off_backfill
+primary_key: []
+columns:
+  - name: geolocation_zip_code_prefix
+    type: string
+    nullable: false
+    description: Five-digit zip prefix, leading zeros kept.
+  - name: geolocation_lat
+    type: decimal(24,20)
+    nullable: false
+    description: Latitude as sent, up to 20 decimals.
+  - name: geolocation_lng
+    type: decimal(24,20)
+    nullable: false
+    description: Longitude as sent, up to 20 decimals.
+  - name: geolocation_city
+    type: string
+    nullable: false
+    description: City name as sent; spelling varies.
+  - name: geolocation_state
+    type: string
+    nullable: false
+    description: Two-letter Brazilian state code.

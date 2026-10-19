@@ -1,0 +1,34 @@
+contract: olist_sellers
+version: 1.0.0
+description: Historical Olist sellers. One-off backfill.
+owner:
+  team: data-platform
+  contact: data-platform@slussen.example
+format: csv
+location:
+  landing: landing/olist/sellers/
+  validated: validated/olist/sellers/
+  quarantine: quarantine/olist/sellers/
+  partition: dt=YYYY-MM-DD
+completeness:
+  success_marker: _SUCCESS
+sla:
+  cadence: one_off_backfill
+primary_key: [seller_id]
+columns:
+  - name: seller_id
+    type: string
+    nullable: false
+    description: Seller identifier.
+  - name: seller_zip_code_prefix
+    type: string
+    nullable: false
+    description: Five-digit zip prefix of the seller (a business), leading zeros kept.
+  - name: seller_city
+    type: string
+    nullable: false
+    description: Seller city.
+  - name: seller_state
+    type: string
+    nullable: false
+    description: Two-letter Brazilian state code of the seller.

@@ -12,6 +12,7 @@ WARNING = "warning"
 INFO = "info"
 MAX_ROWS_PER_RULE = 10
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+NTZ_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(\.\d{1,6})?$")
 
 
 @dataclass(frozen=True)
@@ -58,6 +59,17 @@ def _is_utc_timestamp(value) -> bool:
     return ts.utcoffset() == timedelta(0)
 
 
+def _is_ntz_timestamp(value) -> bool:
+    if isinstance(value, datetime):
+        return value.tzinfo is None
+    if isinstance(value, str) and NTZ_TIMESTAMP_RE.match(value):
+        try:
+            return datetime.fromisoformat(value).tzinfo is None
+        except ValueError:
+            return False
+    return False
+
+
 def _is_date(value) -> bool:
     if isinstance(value, datetime):
         return False
@@ -101,6 +113,8 @@ def _matches_type(value, column: Column) -> bool:
         return _is_date(value)
     if column.type == "timestamp":
         return _is_utc_timestamp(value)
+    if column.type == "timestamp_ntz":
+        return _is_ntz_timestamp(value)
     return False
 
 
@@ -136,6 +150,8 @@ def _check_value(value, column: Column, path: str, row: int, out: list[Violation
 
 
 def _check_primary_key(records: list[dict], contract: Contract, out: list[Violation]) -> None:
+    if not contract.primary_key:
+        return
     first_seen: dict[tuple, int] = {}
     key_name = ",".join(contract.primary_key)
     for row, record in enumerate(records):

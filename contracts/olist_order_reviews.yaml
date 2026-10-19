@@ -1,0 +1,48 @@
+contract: olist_order_reviews
+version: 1.0.0
+description: Historical Olist customer reviews. review_id alone repeats across orders, so the key is review_id plus order_id. One-off backfill.
+owner:
+  team: data-platform
+  contact: data-platform@slussen.example
+format: csv
+location:
+  landing: landing/olist/order_reviews/
+  validated: validated/olist/order_reviews/
+  quarantine: quarantine/olist/order_reviews/
+  partition: dt=YYYY-MM-DD
+completeness:
+  success_marker: _SUCCESS
+sla:
+  cadence: one_off_backfill
+primary_key: [review_id, order_id]
+columns:
+  - name: review_id
+    type: string
+    nullable: false
+    description: Review identifier; not unique on its own.
+  - name: order_id
+    type: string
+    nullable: false
+    description: Order the review belongs to.
+  - name: review_score
+    type: integer
+    nullable: false
+    description: Score from 1 to 5.
+  - name: review_comment_title
+    type: string
+    nullable: true
+    pii: true
+    description: Free-text title written by the customer, Portuguese.
+  - name: review_comment_message
+    type: string
+    nullable: true
+    pii: true
+    description: Free-text comment written by the customer, Portuguese; may contain line breaks.
+  - name: review_creation_date
+    type: timestamp_ntz
+    nullable: false
+    description: When the review survey was sent, source local time without zone.
+  - name: review_answer_timestamp
+    type: timestamp_ntz
+    nullable: false
+    description: When the customer answered, source local time without zone.

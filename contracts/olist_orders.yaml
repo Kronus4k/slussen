@@ -1,0 +1,50 @@
+contract: olist_orders
+version: 1.0.0
+description: Historical Olist orders, one row per order. One-off backfill from the public Olist dataset.
+owner:
+  team: data-platform
+  contact: data-platform@slussen.example
+format: csv
+location:
+  landing: landing/olist/orders/
+  validated: validated/olist/orders/
+  quarantine: quarantine/olist/orders/
+  partition: dt=YYYY-MM-DD
+completeness:
+  success_marker: _SUCCESS
+sla:
+  cadence: one_off_backfill
+primary_key: [order_id]
+columns:
+  - name: order_id
+    type: string
+    nullable: false
+    description: Order identifier.
+  - name: customer_id
+    type: string
+    nullable: false
+    description: Per-order customer key; join to olist_customers.
+  - name: order_status
+    type: string
+    nullable: false
+    description: Final order status, e.g. delivered, shipped, canceled, unavailable.
+  - name: order_purchase_timestamp
+    type: timestamp_ntz
+    nullable: false
+    description: Purchase time, source local time without zone.
+  - name: order_approved_at
+    type: timestamp_ntz
+    nullable: true
+    description: Payment approval time, source local time without zone.
+  - name: order_delivered_carrier_date
+    type: timestamp_ntz
+    nullable: true
+    description: Handover to carrier, source local time without zone.
+  - name: order_delivered_customer_date
+    type: timestamp_ntz
+    nullable: true
+    description: Delivery to customer, source local time without zone.
+  - name: order_estimated_delivery_date
+    type: timestamp_ntz
+    nullable: false
+    description: Promised delivery date, sent as a timestamp at midnight.

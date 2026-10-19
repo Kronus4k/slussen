@@ -92,7 +92,7 @@ def process_batch(store: Store, success_key: str, contracts: list[Contract], now
         findings.append((batch_prefix, Violation("empty_batch", BREAKING, None, "success marker without data files")))
     for key in data_keys:
         try:
-            records = read_records(store.get(key), contract.format)
+            records = read_records(store.get(key), contract.format, contract)
         except ReadError as exc:
             findings.append((key, Violation("unreadable_file", BREAKING, None, str(exc))))
             continue
