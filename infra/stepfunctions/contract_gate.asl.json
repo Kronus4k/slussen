@@ -112,6 +112,10 @@
         {
           "Condition": "{% $states.input.status = 'quarantined' %}",
           "Next": "NotifyQuarantine"
+        },
+        {
+          "Condition": "{% $states.input.status = 'duplicate' %}",
+          "Next": "NotifyDuplicate"
         }
       ],
       "Default": "BatchAccepted"
@@ -135,6 +139,24 @@
       "Next": "BatchQuarantined"
     },
     "BatchQuarantined": {
+      "Type": "Succeed"
+    },
+    "NotifyDuplicate": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Arguments": {
+        "TopicArn": "__TOPIC_ARN__",
+        "Subject": "{% 'Slussen: duplicate batch parked (' & $states.input.contract & ')' %}",
+        "Message": "{% 'Contract: ' & $states.input.contract & ' v' & $states.input.version & '\\nBatch: ' & $states.input.batch & '\\nThis batch was already decided; the re-upload was not processed.' & '\\nFiles moved: ' & $states.input.files & '\\nMoved to: s3://' & $bucket & '/' & $states.input.moved_to & '\\nAudit row: s3://' & $bucket & '/' & $states.input.audit_key & '\\nTo resend corrected data, use a new batch id.' %}"
+      },
+      "Output": {
+        "status": "{% $states.input.status %}",
+        "batch": "{% $states.input.batch %}",
+        "alertMessageId": "{% $states.result.MessageId %}"
+      },
+      "Next": "BatchDuplicate"
+    },
+    "BatchDuplicate": {
       "Type": "Succeed"
     },
     "NotifyFailure": {
