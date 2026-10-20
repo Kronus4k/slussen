@@ -132,7 +132,7 @@ def generate_batch(n: int, now: datetime, seed: int | None = None, break_mode: s
         raise ValueError(f"unknown break mode '{break_mode}', choose from {BREAK_MODES}")
     if n < 2:
         raise ValueError("a batch needs at least 2 records")
-    rng = random.Random(seed)
+    rng = random.Random(None if seed is None else f"{seed}:{_ts(now)}")
     records = [_record(rng, now) for _ in range(n)]
     if break_mode:
         _apply_break(records, break_mode)
