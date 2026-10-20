@@ -6,7 +6,6 @@
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:GetObjectVersion"],
       "Resource": [
-        "arn:aws:s3:::__BUCKET__/landing/olist/*",
         "arn:aws:s3:::__BUCKET__/validated/*",
         "arn:aws:s3:::__BUCKET__/audit/contract_violations/*"
       ]
@@ -18,7 +17,7 @@
       "Resource": "arn:aws:s3:::__BUCKET__",
       "Condition": {
         "StringLike": {
-          "s3:prefix": ["landing/olist/*", "validated/*", "audit/contract_violations/*"]
+          "s3:prefix": ["validated/*", "audit/contract_violations/*"]
         }
       }
     },
