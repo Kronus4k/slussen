@@ -15,6 +15,7 @@ from pipeline_core.validator import BREAKING, WARNING, Violation, validate_recor
 from pipeline_core.writers import to_parquet
 
 AUDIT_PREFIX = "audit/contract_violations"
+DUPLICATES_DIR = "_duplicates/"
 MAX_FAILURE_CAUSE = 1000
 
 
@@ -35,6 +36,7 @@ class GateOutcome:
     suppressed: int = 0
     written: list[str] = field(default_factory=list)
     audit_key: str | None = None
+    moved_to: str | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -72,6 +74,40 @@ def _audit_lines(findings, contract: Contract, outcome: GateOutcome, detected_at
     return "".join(json.dumps(r) + "\n" for r in rows).encode("utf-8")
 
 
+def _park_duplicate(
+    store: Store,
+    contract: Contract,
+    outcome: GateOutcome,
+    batch_prefix: str,
+    partition: str,
+    landing_keys: list[str],
+    decided: str,
+    now: datetime | None,
+) -> GateOutcome:
+    received = now or datetime.now(timezone.utc)
+    stamp = received.strftime("%Y%m%dT%H%M%SZ")
+    target_prefix = f"{contract.location['quarantine']}{DUPLICATES_DIR}{partition}received={stamp}/"
+    outcome.status = "duplicate"
+    outcome.moved_to = target_prefix
+    outcome.files = sum(1 for k in landing_keys if PurePosixPath(k).name != contract.success_marker)
+    for key in landing_keys:
+        target = target_prefix + key[len(batch_prefix):]
+        store.copy(key, target)
+        outcome.written.append(target)
+
+    finding = Violation(
+        "duplicate_batch", WARNING, None, f"re-upload into a batch already {decided}; originals moved to {target_prefix}"
+    )
+    outcome.warnings = 1
+    outcome.audit_key = f"{AUDIT_PREFIX}/contract={contract.name}/{partition}duplicate-{stamp}.jsonl"
+    detected_at = received.strftime("%Y-%m-%dT%H:%M:%SZ")
+    store.put(outcome.audit_key, _audit_lines([(batch_prefix, finding)], contract, outcome, detected_at))
+
+    for key in landing_keys:
+        store.delete(key)
+    return outcome
+
+
 def process_batch(store: Store, success_key: str, contracts: list[Contract], now: datetime | None = None) -> GateOutcome:
     contract = match_contract(success_key, contracts)
     if PurePosixPath(success_key).name != contract.success_marker:
@@ -83,9 +119,14 @@ def process_batch(store: Store, success_key: str, contracts: list[Contract], now
     quarantine_prefix = contract.location["quarantine"] + partition
     outcome = GateOutcome("validated", contract.name, contract.version, partition.rstrip("/"))
 
-    if store.exists(validated_prefix + contract.success_marker) or store.exists(quarantine_prefix + contract.success_marker):
-        outcome.status = "skipped"
-        return outcome
+    already_validated = store.exists(validated_prefix + contract.success_marker)
+    if already_validated or store.exists(quarantine_prefix + contract.success_marker):
+        landing_keys = store.list_keys(batch_prefix)
+        if not landing_keys:
+            outcome.status = "skipped"
+            return outcome
+        decided = "validated" if already_validated else "quarantined"
+        return _park_duplicate(store, contract, outcome, batch_prefix, partition, landing_keys, decided, now)
 
     data_keys = [k for k in store.list_keys(batch_prefix) if k != success_key]
     outcome.files = len(data_keys)
@@ -132,7 +173,6 @@ def process_batch(store: Store, success_key: str, contracts: list[Contract], now
     for key in data_keys + [success_key]:
         store.delete(key)
     return outcome
-
 
 def run_and_report(
     store: Store,
