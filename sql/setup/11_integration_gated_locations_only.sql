@@ -1,0 +1,10 @@
+USE ROLE ACCOUNTADMIN;
+
+ALTER STORAGE INTEGRATION SLUSSEN_S3_INT SET STORAGE_ALLOWED_LOCATIONS = (
+    's3://slussen-lake-qwer/validated/',
+    's3://slussen-lake-qwer/audit/contract_violations/'
+);
+
+DESC STORAGE INTEGRATION SLUSSEN_S3_INT;
+
+USE ROLE DATA_ENGINEER;

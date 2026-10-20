@@ -6,7 +6,8 @@
     "object": {
       "key": [
         { "wildcard": "landing/ops/*/_SUCCESS" },
-        { "wildcard": "landing/finance/*/_SUCCESS" }
+        { "wildcard": "landing/finance/*/_SUCCESS" },
+        { "wildcard": "landing/olist/*/_SUCCESS" }
       ]
     }
   }
