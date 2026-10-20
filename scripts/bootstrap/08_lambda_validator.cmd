@@ -6,6 +6,8 @@ set FUNCTION=slussen-validator
 set ROLE=slussen-validator-lambda
 set REPO=slussen-validator
 set LOG_GROUP=/aws/lambda/%FUNCTION%
+set MEMORY_MB=1024
+set TIMEOUT_S=60
 set TAG=%~1
 if "%TAG%"=="" (
     echo Usage: 08_lambda_validator.cmd IMAGE_TAG
@@ -24,11 +26,13 @@ if errorlevel 1 exit /b 1
 
 aws lambda get-function --function-name %FUNCTION% --profile %PROFILE% --region %REGION% >nul 2>&1
 if errorlevel 1 (
-    aws lambda create-function --function-name %FUNCTION% --package-type Image --code ImageUri=%IMAGE_URI% --role %ROLE_ARN% --architectures x86_64 --memory-size 1024 --timeout 300 --description "Slussen contract gate" --profile %PROFILE% --region %REGION% --query FunctionName --output text
+    aws lambda create-function --function-name %FUNCTION% --package-type Image --code ImageUri=%IMAGE_URI% --role %ROLE_ARN% --architectures x86_64 --memory-size %MEMORY_MB% --timeout %TIMEOUT_S% --description "Slussen contract gate" --profile %PROFILE% --region %REGION% --query FunctionName --output text
     aws lambda wait function-active-v2 --function-name %FUNCTION% --profile %PROFILE% --region %REGION%
 ) else (
     aws lambda update-function-code --function-name %FUNCTION% --image-uri %IMAGE_URI% --profile %PROFILE% --region %REGION% --query FunctionName --output text
     aws lambda wait function-updated-v2 --function-name %FUNCTION% --profile %PROFILE% --region %REGION%
+    aws lambda update-function-configuration --function-name %FUNCTION% --memory-size %MEMORY_MB% --timeout %TIMEOUT_S% --profile %PROFILE% --region %REGION% --query "[FunctionName,Timeout,MemorySize]" --output text
+    aws lambda wait function-updated-v2 --function-name %FUNCTION% --profile %PROFILE% --region %REGION%
 )
-echo Function %FUNCTION% is on image %TAG%
+echo Function %FUNCTION% is on image %TAG% with %MEMORY_MB% MB and a %TIMEOUT_S% s timeout
 endlocal
