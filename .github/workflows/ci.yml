@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  identifiers:
+    name: Identifier check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: No account identifiers in tracked files
+        env:
+          ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}
+        run: bash scripts/checks/no_account_id.sh --network
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install --no-deps -e .
+      - name: Run tests
+        run: python -m pytest -q
+
+  image:
+    name: Validator image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build without pushing
+        run: docker build --provenance=false -f docker/validator/Dockerfile -t slussen-validator:ci .
