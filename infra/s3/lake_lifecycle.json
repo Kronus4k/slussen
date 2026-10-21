@@ -1,0 +1,18 @@
+{
+  "Rules": [
+    {
+      "ID": "expire-old-versions",
+      "Status": "Enabled",
+      "Filter": {},
+      "Expiration": { "ExpiredObjectDeleteMarker": true },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 30 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 7 }
+    },
+    {
+      "ID": "expire-athena-results",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "athena-results/" },
+      "Expiration": { "Days": 7 }
+    }
+  ]
+}

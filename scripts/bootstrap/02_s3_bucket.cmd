@@ -1,4 +1,5 @@
 @echo off
+setlocal
 set AWS_PROFILE=slussen-admin
 set AWS_REGION=eu-north-1
 set BUCKET=slussen-lake-qwer
@@ -13,11 +14,12 @@ aws s3api put-bucket-versioning --bucket %BUCKET% --versioning-configuration Sta
 
 echo {"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"aws:kms","KMSMasterKeyID":"%KEY_ARN%"},"BucketKeyEnabled":true}]} > %TEMP%\slussen_enc.json
 aws s3api put-bucket-encryption --bucket %BUCKET% --server-side-encryption-configuration file://%TEMP%\slussen_enc.json
+del "%TEMP%\slussen_enc.json"
 
-echo {"Rules":[{"ID":"expire-old-versions","Status":"Enabled","Filter":{},"NoncurrentVersionExpiration":{"NoncurrentDays":30},"AbortIncompleteMultipartUpload":{"DaysAfterInitiation":7}}]} > %TEMP%\slussen_lifecycle.json
-aws s3api put-bucket-lifecycle-configuration --bucket %BUCKET% --lifecycle-configuration file://%TEMP%\slussen_lifecycle.json
+call scripts\bootstrap\20_s3_lake_lifecycle.cmd
 
 aws s3api put-bucket-tagging --bucket %BUCKET% --tagging "TagSet=[{Key=project,Value=slussen}]"
 
 aws s3api get-bucket-encryption --bucket %BUCKET% --query "ServerSideEncryptionConfiguration.Rules[0].[ApplyServerSideEncryptionByDefault.SSEAlgorithm,BucketKeyEnabled]" --output table
 aws s3api get-bucket-versioning --bucket %BUCKET%
+endlocal
