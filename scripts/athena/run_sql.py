@@ -1,36 +1,14 @@
 import argparse
 import sys
-import time
 from pathlib import Path
 
 import boto3
 
-FINAL_STATES = ("SUCCEEDED", "FAILED", "CANCELLED")
+from pipeline_core.checks.athena import run_statement
 
 
 def split_statements(text: str) -> list[str]:
     return [s.strip() for s in text.split(";\n") if s.strip()]
-
-
-def run_statement(client, sql: str, workgroup: str, database: str) -> dict:
-    query_id = client.start_query_execution(
-        QueryString=sql, WorkGroup=workgroup, QueryExecutionContext={"Database": database}
-    )["QueryExecutionId"]
-    while True:
-        execution = client.get_query_execution(QueryExecutionId=query_id)["QueryExecution"]
-        if execution["Status"]["State"] in FINAL_STATES:
-            break
-        time.sleep(1)
-    result = {
-        "state": execution["Status"]["State"],
-        "reason": execution["Status"].get("StateChangeReason", ""),
-        "scanned_bytes": execution.get("Statistics", {}).get("DataScannedInBytes", 0),
-        "rows": [],
-    }
-    if result["state"] == "SUCCEEDED" and execution.get("StatementType") == "DML":
-        page = client.get_query_results(QueryExecutionId=query_id, MaxResults=11)
-        result["rows"] = [[c.get("VarCharValue", "") for c in r["Data"]] for r in page["ResultSet"]["Rows"]]
-    return result
 
 
 def main() -> None:
