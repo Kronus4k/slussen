@@ -15,9 +15,23 @@
         "key": "{% $states.input.detail.object.key %}"
       },
       "Output": {
-        "batchBytes": "{% $sum($states.result.Contents.Size) %}",
+        "batchBytes": "{% $exists($states.result.Contents) ? $sum($states.result.Contents.Size) : 0 %}",
         "fileCount": "{% $count($states.result.Contents) %}"
       },
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Assign": {
+            "bucket": "{% $states.input.detail.bucket.name %}",
+            "key": "{% $states.input.detail.object.key %}"
+          },
+          "Output": {
+            "error": "{% $states.errorOutput.Error %}",
+            "cause": "{% $states.errorOutput.Cause %}"
+          },
+          "Next": "NotifyFailure"
+        }
+      ],
       "Next": "RouteBySize"
     },
     "RouteBySize": {
@@ -116,11 +130,18 @@
         {
           "Condition": "{% $states.input.status = 'duplicate' %}",
           "Next": "NotifyDuplicate"
+        },
+        {
+          "Condition": "{% $states.input.status = 'skipped' %}",
+          "Next": "BatchSkipped"
         }
       ],
       "Default": "BatchAccepted"
     },
     "BatchAccepted": {
+      "Type": "Succeed"
+    },
+    "BatchSkipped": {
       "Type": "Succeed"
     },
     "NotifyQuarantine": {
