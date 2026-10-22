@@ -6,6 +6,12 @@
       "Effect": "Allow",
       "Action": "s3:ListBucket",
       "Resource": "arn:aws:s3:::slussen-lake-qwer"
+    },
+    {
+      "Sid": "ReadAirflowConnectionSecrets",
+      "Effect": "Allow",
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "arn:aws:secretsmanager:eu-north-1:__ACCOUNT_ID__:secret:slussen/airflow/connections/*"
     }
   ]
 }
