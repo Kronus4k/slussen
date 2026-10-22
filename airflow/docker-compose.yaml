@@ -64,10 +64,13 @@ services:
       <<: *airflow-common-env
       AWS_PROFILE: slussen-airflow
       AWS_CONFIG_FILE: /home/airflow/.aws/config
+      AIRFLOW__SECRETS__BACKEND: airflow.providers.amazon.aws.secrets.secrets_manager.SecretsManagerBackend
+      AIRFLOW__SECRETS__BACKEND_KWARGS: '{"connections_prefix": "slussen/airflow/connections", "variables_prefix": null, "config_prefix": null}'
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ${USERPROFILE:?USERPROFILE is not set}/.aws:/home/airflow/.aws:ro
+      - ${USERPROFILE:?USERPROFILE is not set}/.aws/sso/cache:/home/airflow/.aws/sso/cache
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
       interval: 30s
