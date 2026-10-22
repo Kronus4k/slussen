@@ -4,7 +4,7 @@
     {
       "Sid": "ListLakeBucket",
       "Effect": "Allow",
-      "Action": "s3:ListBucket",
+      "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
       "Resource": "arn:aws:s3:::slussen-lake-qwer"
     },
     {
@@ -41,6 +41,35 @@
         "arn:aws:s3:::slussen-lake-qwer/quarantine/ops/orders/*_SUCCESS",
         "arn:aws:s3:::slussen-lake-qwer/quarantine/finance/settlements/*_SUCCESS"
       ]
+    },
+    {
+      "Sid": "RunReconciliationQueries",
+      "Effect": "Allow",
+      "Action": [
+        "athena:StartQueryExecution",
+        "athena:GetQueryExecution",
+        "athena:GetQueryResults",
+        "athena:StopQueryExecution"
+      ],
+      "Resource": "arn:aws:athena:eu-north-1:__ACCOUNT_ID__:workgroup/slussen"
+    },
+    {
+      "Sid": "ReadReconciledTableDefinitions",
+      "Effect": "Allow",
+      "Action": ["glue:GetDatabase", "glue:GetTable", "glue:GetPartitions"],
+      "Resource": [
+        "arn:aws:glue:eu-north-1:__ACCOUNT_ID__:catalog",
+        "arn:aws:glue:eu-north-1:__ACCOUNT_ID__:database/slussen_lake",
+        "arn:aws:glue:eu-north-1:__ACCOUNT_ID__:table/slussen_lake/ops_orders",
+        "arn:aws:glue:eu-north-1:__ACCOUNT_ID__:table/slussen_lake/olist_order_items",
+        "arn:aws:glue:eu-north-1:__ACCOUNT_ID__:table/slussen_lake/olist_customers"
+      ]
+    },
+    {
+      "Sid": "WriteAthenaResults",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject", "s3:AbortMultipartUpload"],
+      "Resource": "arn:aws:s3:::slussen-lake-qwer/athena-results/*"
     },
     {
       "Sid": "LakeKeyViaS3Only",
