@@ -12,6 +12,44 @@
       "Effect": "Allow",
       "Action": "secretsmanager:GetSecretValue",
       "Resource": "arn:aws:secretsmanager:eu-north-1:__ACCOUNT_ID__:secret:slussen/airflow/connections/*"
+    },
+    {
+      "Sid": "PublishProducerBatches",
+      "Effect": "Allow",
+      "Action": "s3:PutObject",
+      "Resource": [
+        "arn:aws:s3:::slussen-lake-qwer/landing/ops/orders/*",
+        "arn:aws:s3:::slussen-lake-qwer/landing/finance/settlements/*"
+      ]
+    },
+    {
+      "Sid": "ReadGeneratorSources",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::slussen-lake-qwer/validated/olist/order_items/*",
+        "arn:aws:s3:::slussen-lake-qwer/validated/olist/customers/*",
+        "arn:aws:s3:::slussen-lake-qwer/validated/ops/orders/*"
+      ]
+    },
+    {
+      "Sid": "ReadDecisionMarkersOnly",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::slussen-lake-qwer/validated/finance/settlements/*_SUCCESS",
+        "arn:aws:s3:::slussen-lake-qwer/quarantine/ops/orders/*_SUCCESS",
+        "arn:aws:s3:::slussen-lake-qwer/quarantine/finance/settlements/*_SUCCESS"
+      ]
+    },
+    {
+      "Sid": "LakeKeyViaS3Only",
+      "Effect": "Allow",
+      "Action": ["kms:GenerateDataKey", "kms:Decrypt"],
+      "Resource": "__KMS_KEY_ARN__",
+      "Condition": {
+        "StringEquals": { "kms:ViaService": "s3.eu-north-1.amazonaws.com" }
+      }
     }
   ]
 }
