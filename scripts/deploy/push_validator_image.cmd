@@ -4,7 +4,7 @@ set PROFILE=slussen-de
 set REGION=eu-north-1
 set REPO=slussen-validator
 
-for /f %%a in ('git status --porcelain -- src contracts lambdas docker pyproject.toml') do (
+for /f %%a in ('git status --porcelain -- src contracts lambdas docker pyproject.toml requirements.lock') do (
     echo Uncommitted changes in image sources. Commit them first so the tag matches the code.
     exit /b 1
 )
