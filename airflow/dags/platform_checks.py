@@ -11,6 +11,11 @@ DQ_CHECKS = {
     "ops_event_id_unique": ["BRONZE.OPS_ORDERS", "error"],
     "ops_items_unknown_product": ["BRONZE.OPS_ORDERS", "warn"],
     "olist_orders_without_payment": ["BRONZE.OLIST_ORDERS", "warn"],
+    "ops_status_regression": ["BRONZE.OPS_ORDERS", "warn"],
+    "ops_paid_status_without_payment": ["BRONZE.OPS_ORDERS", "warn"],
+    "customers_history_complete": ["SILVER.CUSTOMERS_HISTORY", "error"],
+    "gold_gmv_internal_ties": ["GOLD.FCT_ORDERS", "error"],
+    "gold_freshness_lag": ["GOLD.FCT_ORDERS", "warn"],
 }
 DQ_QUERIES = {name: (Path(__file__).parent / "sql" / "dq" / f"{name}.sql").read_text() for name in DQ_CHECKS}
 

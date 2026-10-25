@@ -20,13 +20,15 @@ def publish(batch_time_iso: str) -> dict:
 @dag(
     dag_id="ops_orders_producer",
     schedule="0 */4 * * *",
-    start_date=datetime(2026, 10, 22, tzinfo=timezone.utc),
-    catchup=False,
+    start_date=datetime(2026, 10, 25, tzinfo=timezone.utc),
+    catchup=True,
     max_active_runs=1,
     default_args={"retries": 2, "retry_delay": timedelta(minutes=5)},
     tags=["slussen", "producer", "ops"],
     doc_md="Operations team producer: one ops_orders batch every 4 hours into landing/, then a LOAD_LOG row. "
-    "Idempotent: a re-run of the same DAG run finds its batch decided and logs a skip.",
+    "Idempotent: a re-run of the same DAG run finds its batch decided and logs a skip. "
+    "Catch-up is on: after downtime the missed slots run oldest first, one at a time. "
+    "Failed runs are not retried by catch-up; re-run them with a backfill using --reprocess-behavior failed.",
 )
 def ops_orders_producer():
     log_load(publish(BATCH_TIME))
