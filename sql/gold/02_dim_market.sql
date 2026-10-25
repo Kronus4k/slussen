@@ -1,0 +1,10 @@
+USE ROLE DATA_ENGINEER;
+
+CREATE OR REPLACE VIEW ECOM_DB.GOLD.DIM_MARKET AS
+SELECT
+  market_code,
+  ANY_VALUE(region_name) AS market_name,
+  COUNT(*) AS state_count,
+  ARRAY_AGG(state_code) WITHIN GROUP (ORDER BY state_code) AS states
+FROM ECOM_DB.SILVER.REF_STATE_REGION
+GROUP BY market_code;
