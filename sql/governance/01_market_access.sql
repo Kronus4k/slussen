@@ -13,6 +13,7 @@ USING (
   SELECT column1 AS role_name, column2 AS market_code, column3 AS note
   FROM VALUES
     ('DATA_ENGINEER', 'ALL', 'dynamic table owner, must see all rows'),
+    ('ORCHESTRATOR_ROLE', 'ALL', 'Airflow platform checks read all markets'),
     ('EXEC', 'ALL', 'executive persona'),
     ('REPORTING_ROLE', 'ALL', 'Power BI service role, Power BI RLS narrows per user'),
     ('PRODUCT_OWNER', 'SUDESTE', 'assigned market'),
