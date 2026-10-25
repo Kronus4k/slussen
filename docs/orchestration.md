@@ -87,3 +87,49 @@ The design carries over to Prefect without structural changes:
 | Run failure on a blocking check | Failed flow run, alerted through an automation |
 
 Idempotent producers, the audit tables and the split between scheduled and event-driven work don't depend on the orchestrator.
+
+
+## Operations runbook
+
+### After downtime
+
+Docker off, the PC asleep or the SSO session expired (about 8 hours after login) all stop the producers.
+
+1. Sign in again (`aws sso login`) and check that the scheduler reaches AWS.
+2. List the producer runs. Missing slots are created by catch-up, oldest first, as soon as the scheduler runs again.
+3. Failed runs are not retried by catch-up. Re-run them with `airflow backfill create --reprocess-behavior failed` over the failed range.
+4. Pause `platform_checks` while runs are catching up, then unpause it and trigger it once.
+
+### Backfill order
+
+Fill gaps oldest first, and never let a newer slot run before the older ones. A batch produced later but for an earlier slot moves orders forward with an earlier event time, which shows up as an out-of-order snapshot (`ops_status_regression`).
+
+### Checks during a backfill
+
+Athena sees a batch as soon as the gate writes it to `validated/`; Bronze gets it only after Snowpipe has loaded it. A reconciliation that runs in between reports a mismatch that is not real. Pause `platform_checks` during a backfill and trigger it once afterwards.
+
+### After re-creating a Gold dynamic table
+
+`CREATE OR REPLACE` makes a new object, so attached row access policies and tags are gone. Run `sql/governance/03_apply_row_access.sql` and `sql/governance/04_pii_masking_and_tags.sql` again, then check the policy references for `GOVERNANCE.RAP_MARKET`.
+
+### Dynamic table freshness
+
+Gold refreshes every 12 hours. A refresh reads all its sources as of one data timestamp, which can be hours before the refresh itself. `ALTER DYNAMIC TABLE ... REFRESH` on a Gold table also refreshes the Silver tables it reads, to the same timestamp. A Silver table that no Gold table reads, such as `SILVER.CUSTOMERS`, refreshes only when asked: refresh it before reading it from a task, an insert or a manual query.
+
+### Customer history
+
+A stream on `BRONZE.OPS_ORDERS` triggers a serverless task that merges new addresses into `SILVER.CUSTOMERS_HISTORY`. If `customers_history_complete` fails, run `sql/silver/11_customers_history_catchup.sql`. It refreshes Silver first, inserts the people who have no history row and can be rerun safely.
+
+### Data quality checks
+
+| Check | Severity | Fails when |
+| --- | --- | --- |
+| `ops_event_id_unique` | error | An ops event id appears in more than one file |
+| `ops_items_unknown_product` | warn | Ops items from the last 24 hours have no Olist product |
+| `olist_orders_without_payment` | warn | An Olist order has no payment |
+| `ops_status_regression` | warn | An ops order's latest snapshot is below a status it already reached |
+| `ops_paid_status_without_payment` | warn | An approved, shipped or delivered ops order has no payment |
+| `customers_history_complete` | error | A person in the Bronze ops feed has no customer history row |
+| `gold_gmv_internal_ties` | error | GMV in `fct_orders` differs from the item fact, the daily and category marts or `dim_customer` |
+| `gold_freshness_lag` | warn | Gold's newest ops purchase is more than 16 hours behind Bronze |
+| `landing_empty_at_rest` | error | Files older than one hour sit in `landing/` |
