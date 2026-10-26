@@ -16,7 +16,7 @@ ALTER DYNAMIC TABLE ECOM_DB.GOLD.DIM_CUSTOMER SET COMMENT = 'Customers, one row 
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.DIM_PRODUCT SET COMMENT = 'Products, one row per product plus one unknown member for items whose product is not in the catalog.';
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_DAILY_REVENUE SET COMMENT = 'Daily orders and GMV per market, one row per day and market including days without orders, with 7- and 28-day moving averages, year-to-date GMV and the same day last week.';
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_CATEGORY_MONTHLY SET COMMENT = 'Monthly GMV per category and market, with rank and share within the market and the change versus the previous month.';
-ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_COHORT_RETENTION SET COMMENT = 'Monthly cohort retention per market. Cohort = month of the first GMV order, in the market of that order. Company-wide retention = SUM(active_customers) / SUM(cohort_size), never an average of rates.';
+ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_COHORT_RETENTION SET COMMENT = 'Monthly cohort retention per market, one row per cohort month, market and month since the first GMV order, including months where nobody returned (0). Month-1 retention = SUM(active_customers) / SUM(cohort_size) at months_since_first = 1; never an average of rates.';
 ALTER VIEW ECOM_DB.GOLD.DIM_DATE SET COMMENT = 'Calendar, one row per day. is_analysis_window skips the sparse first months of history; is_live_period marks days covered by the live ops feed.';
 ALTER VIEW ECOM_DB.GOLD.DIM_MARKET SET COMMENT = 'Markets: Brazil''s five regions. One row per market; row access is granted per market.';
 
