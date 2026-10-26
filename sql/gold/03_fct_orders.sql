@@ -1,10 +1,19 @@
+-- Gold FCT_ORDERS: one row per order on the KPI timeline, with GMV and customer order numbering.
+-- Grain: one row per order_id (Olist history before the live start, plus live ops orders).
+-- GMV = item price + freight, for every order that is not canceled or unavailable.
+-- Runs as: DATA_ENGINEER (owns Gold) on TRANSFORM_WH.
+-- Rerun: re-creates the table, and CREATE OR REPLACE drops the attached row access policy
+--   and tags. After any rerun, run sql/governance/03 and 04 again before anyone reads Gold.
 USE ROLE DATA_ENGINEER;
 
+-- 12 hours caps how stale the table may get; Snowflake may refresh more often to stay under it.
+-- Silver tables (DOWNSTREAM) refresh together with it.
 CREATE OR REPLACE DYNAMIC TABLE ECOM_DB.GOLD.FCT_ORDERS
   TARGET_LAG = '12 hours'
   WAREHOUSE = TRANSFORM_WH
   REFRESH_MODE = AUTO
 AS
+-- Items are summed to order level first, so the joins below can't multiply order rows.
 WITH items AS (
   SELECT order_id, COUNT(*) AS item_count, SUM(price) AS items_value, SUM(freight_value) AS freight_value
   FROM ECOM_DB.SILVER.ORDER_ITEMS
@@ -14,6 +23,9 @@ base AS (
   SELECT
     o.order_id,
     o.order_date_local,
+    -- Market at order time, from the state on the order itself.
+    -- DIM_CUSTOMER carries the customer's current market instead.
+    -- The row access policy filters every Gold fact on this column.
     r.market_code,
     o.customer_unique_id,
     o.customer_id,
@@ -23,11 +35,15 @@ base AS (
     o.order_approved_ts,
     o.order_delivered_customer_ts,
     o.order_estimated_delivery_date,
+    -- Orders without items (mostly unavailable or canceled) get 0 instead of NULL,
+    -- so a GMV-status order without items still counts, worth 0.
     COALESCE(i.item_count, 0) AS item_count,
     COALESCE(i.items_value, 0)::NUMBER(12,2) AS items_value,
     COALESCE(i.freight_value, 0)::NUMBER(12,2) AS freight_value,
     (COALESCE(i.items_value, 0) + COALESCE(i.freight_value, 0))::NUMBER(12,2) AS order_value,
     o.order_status NOT IN ('canceled', 'unavailable') AS is_gmv_order,
+    -- Silver PAYMENTS has one row per order, so this join can't inflate item values.
+    -- GMV comes from items; payment totals can differ (vouchers, installment interest).
     p.payment_total,
     p.primary_payment_type,
     p.max_installments
@@ -35,8 +51,13 @@ base AS (
   LEFT JOIN ECOM_DB.SILVER.REF_STATE_REGION r ON r.state_code = o.customer_state
   LEFT JOIN items i ON i.order_id = o.order_id
   LEFT JOIN ECOM_DB.SILVER.PAYMENTS p ON p.order_id = o.order_id
+  -- Leaves out the shifted Olist orders that would overlap the live period
+  -- and the orders from the earlier CLI generator.
   WHERE o.in_kpi_timeline
 ),
+-- Numbers each person's orders across both sources; order_id breaks ties at the same timestamp.
+-- It counts every order, canceled ones too, so it is not the repeat-customer rule,
+-- which counts GMV orders only.
 numbered AS (
   SELECT base.*,
          ROW_NUMBER() OVER (PARTITION BY customer_unique_id ORDER BY order_purchase_ts, order_id) AS customer_order_number
@@ -59,6 +80,7 @@ SELECT
   freight_value,
   order_value,
   is_gmv_order,
+  -- Summing gmv over any slice gives GMV directly; non-GMV orders contribute 0.
   IFF(is_gmv_order, order_value, 0)::NUMBER(12,2) AS gmv,
   IFF(order_status = 'delivered', order_value, 0)::NUMBER(12,2) AS delivered_gmv,
   payment_total,
