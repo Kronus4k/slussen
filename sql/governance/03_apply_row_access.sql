@@ -1,11 +1,22 @@
+-- Attaches the market row access policy RAP_MARKET to every Gold object that has market_code.
+-- Each role then sees only the markets mapped to it in GOVERNANCE.MARKET_ACCESS.
+-- DIM_PRODUCT and DIM_DATE have no market column (shared by all markets), so they stay open.
+-- Runs as: PLATFORM_ADMIN (owns GOVERNANCE, holds APPLY ROW ACCESS POLICY on the account).
+--   Run with Run All; the file is DDL only.
+-- Rerun: safe, and required after any Gold object is re-created: CREATE OR REPLACE drops
+--   the policy, and the tags from the next file.
+-- Between each DROP and its ADD the object has no policy for a moment, so run it when
+--   nobody reads Gold.
 USE ROLE PLATFORM_ADMIN;
 
+-- ADD fails if a policy is already attached, so every object first drops what it has.
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.FCT_ORDERS DROP ALL ROW ACCESS POLICIES;
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.FCT_ORDERS ADD ROW ACCESS POLICY ECOM_DB.GOVERNANCE.RAP_MARKET ON (market_code);
 
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.FCT_ORDER_ITEMS DROP ALL ROW ACCESS POLICIES;
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.FCT_ORDER_ITEMS ADD ROW ACCESS POLICY ECOM_DB.GOVERNANCE.RAP_MARKET ON (market_code);
 
+-- Customers are filtered by their current market; facts by the market at order time.
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.DIM_CUSTOMER DROP ALL ROW ACCESS POLICIES;
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.DIM_CUSTOMER ADD ROW ACCESS POLICY ECOM_DB.GOVERNANCE.RAP_MARKET ON (market_code);
 
@@ -18,6 +29,7 @@ ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_CATEGORY_MONTHLY ADD ROW ACCESS POLICY ECO
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_COHORT_RETENTION DROP ALL ROW ACCESS POLICIES;
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_COHORT_RETENTION ADD ROW ACCESS POLICY ECOM_DB.GOVERNANCE.RAP_MARKET ON (market_code);
 
+-- The market list itself is filtered too, so slicers only offer a role's own markets.
 ALTER VIEW ECOM_DB.GOLD.DIM_MARKET DROP ALL ROW ACCESS POLICIES;
 ALTER VIEW ECOM_DB.GOLD.DIM_MARKET ADD ROW ACCESS POLICY ECOM_DB.GOVERNANCE.RAP_MARKET ON (market_code);
 
