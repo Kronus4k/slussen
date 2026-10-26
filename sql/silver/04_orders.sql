@@ -1,20 +1,35 @@
+-- Silver ORDERS: one row per order from both sources.
+--   Olist history, shifted forward in time and converted to UTC,
+--   plus live ops orders reduced to their latest snapshot.
+-- Grain: one row per order_id; source_system says where it came from ('olist' or 'ops').
+-- Reads: BRONZE.OLIST_ORDERS, BRONZE.OLIST_CUSTOMERS, BRONZE.OPS_ORDERS, SILVER.REF_DATE_SHIFT.
+-- Runs as: DATA_ENGINEER (owns Silver) on TRANSFORM_WH.
+-- Rerun: safe. CREATE OR REPLACE rebuilds a derived dynamic table; no policies or tags
+--   are attached in Silver, so nothing is lost.
 USE ROLE DATA_ENGINEER;
 USE WAREHOUSE TRANSFORM_WH;
 
+-- DOWNSTREAM: refreshes only when a Gold table that reads it refreshes.
+-- AUTO resolves to FULL refresh here (window function + UNION ALL).
 CREATE OR REPLACE DYNAMIC TABLE ECOM_DB.SILVER.ORDERS
   TARGET_LAG = 'DOWNSTREAM'
   WAREHOUSE = TRANSFORM_WH
   REFRESH_MODE = AUTO
 AS
+-- One-row reference: how many whole days Olist history moves forward so it ends where live data starts.
 WITH shift AS (
   SELECT shift_days, source_anchor_date, target_anchor_date, source_time_zone
   FROM ECOM_DB.SILVER.REF_DATE_SHIFT
   WHERE shift_key = 'olist_history'
 ),
+-- Olist timestamps carry no zone: they are Sao Paulo wall time.
+-- Shift them in local time first (whole days keep the local clock time as recorded),
+-- and convert to UTC only afterwards in the next CTE.
 olist_local AS (
   SELECT
     o.order_id,
     o.customer_id,
+    -- customer_id is new for every order; customer_unique_id is the person (repeat logic).
     c.customer_unique_id,
     c.customer_state,
     o.order_status,
@@ -23,6 +38,8 @@ olist_local AS (
     DATEADD('day', s.shift_days, o.order_delivered_carrier_date) AS carrier_local,
     DATEADD('day', s.shift_days, o.order_delivered_customer_date) AS delivered_local,
     DATEADD('day', s.shift_days, o.order_estimated_delivery_date)::DATE AS order_estimated_delivery_date,
+    -- The few Olist orders after the source anchor would overlap the live period after the shift:
+    -- they are kept but flagged and left out of the KPI timeline.
     o.order_purchase_timestamp >= s.source_anchor_date AS is_post_anchor_history,
     s.source_time_zone,
     o._file_name,
@@ -39,11 +56,15 @@ olist AS (
     customer_unique_id,
     customer_state,
     order_status,
+    -- Wall time to UTC without depending on the session time zone:
+    -- 3-argument CONVERT_TIMEZONE returns a zone-less NTZ, so the UTC value is formatted
+    -- as text with an explicit ' +00:00' and parsed back as TIMESTAMP_TZ.
     TO_TIMESTAMP_TZ(TO_VARCHAR(CONVERT_TIMEZONE(source_time_zone, 'UTC', purchase_local), 'YYYY-MM-DD HH24:MI:SS.FF6') || ' +00:00', 'YYYY-MM-DD HH24:MI:SS.FF6 TZH:TZM') AS order_purchase_ts,
     TO_TIMESTAMP_TZ(TO_VARCHAR(CONVERT_TIMEZONE(source_time_zone, 'UTC', approved_local), 'YYYY-MM-DD HH24:MI:SS.FF6') || ' +00:00', 'YYYY-MM-DD HH24:MI:SS.FF6 TZH:TZM') AS order_approved_ts,
     TO_TIMESTAMP_TZ(TO_VARCHAR(CONVERT_TIMEZONE(source_time_zone, 'UTC', carrier_local), 'YYYY-MM-DD HH24:MI:SS.FF6') || ' +00:00', 'YYYY-MM-DD HH24:MI:SS.FF6 TZH:TZM') AS order_delivered_carrier_ts,
     TO_TIMESTAMP_TZ(TO_VARCHAR(CONVERT_TIMEZONE(source_time_zone, 'UTC', delivered_local), 'YYYY-MM-DD HH24:MI:SS.FF6') || ' +00:00', 'YYYY-MM-DD HH24:MI:SS.FF6 TZH:TZM') AS order_delivered_customer_ts,
     order_estimated_delivery_date,
+    -- Reporting day is the Sao Paulo calendar day of the purchase.
     purchase_local::DATE AS order_date_local,
     is_post_anchor_history,
     FALSE AS is_pre_anchor_live,
@@ -53,6 +74,7 @@ olist AS (
     _loaded_at
   FROM olist_local
 ),
+-- Ops timestamps are already UTC; only the reporting day is derived in Sao Paulo time.
 ops AS (
   SELECT
     b.order_id,
@@ -68,6 +90,7 @@ ops AS (
     b.order_estimated_delivery_date,
     CONVERT_TIMEZONE(s.source_time_zone, b.order_purchase_ts)::DATE AS order_date_local,
     FALSE AS is_post_anchor_history,
+    -- Orders from the earlier CLI generator predate the live start: kept, but outside the KPI timeline.
     CONVERT_TIMEZONE(s.source_time_zone, b.order_purchase_ts)::DATE < s.target_anchor_date AS is_pre_anchor_live,
     CONVERT_TIMEZONE(s.source_time_zone, b.order_purchase_ts)::DATE >= s.target_anchor_date AS in_kpi_timeline,
     b.event_id AS source_event_id,
@@ -75,8 +98,12 @@ ops AS (
     b._loaded_at
   FROM ECOM_DB.BRONZE.OPS_ORDERS b
   CROSS JOIN shift s
+  -- Every status change re-sends the whole order, so keep only its latest snapshot.
+  -- Event time decides, not load order: batches can arrive out of order.
+  -- event_id breaks ties between events with the same timestamp, so the result is deterministic.
   QUALIFY ROW_NUMBER() OVER (PARTITION BY b.order_id ORDER BY b.event_ts DESC, b.event_id DESC) = 1
 )
+-- Both branches list the same columns in the same order; UNION ALL matches them by position.
 SELECT * FROM olist
 UNION ALL
 SELECT * FROM ops;
