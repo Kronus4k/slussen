@@ -79,6 +79,7 @@ ALTER DYNAMIC TABLE ECOM_DB.GOLD.DIM_CUSTOMER ALTER COLUMN spend_quartile COMMEN
 -- DIM_PRODUCT columns
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.DIM_PRODUCT ALTER COLUMN product_id COMMENT 'Product identifier; unknown for the placeholder member.';
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.DIM_PRODUCT ALTER COLUMN category COMMENT 'Product category in English; unknown when the product has none.';
+ALTER DYNAMIC TABLE ECOM_DB.GOLD.DIM_PRODUCT ALTER COLUMN category_label COMMENT 'Readable category name for reports, from SILVER.REF_CATEGORY_LABEL (D6.9).';
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.DIM_PRODUCT ALTER COLUMN category_name_pt COMMENT 'Original Portuguese category name from the source.';
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.DIM_PRODUCT ALTER COLUMN category_source COMMENT 'Where the English category came from in Silver; unknown_member for the placeholder row.';
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.DIM_PRODUCT ALTER COLUMN product_weight_g COMMENT 'Package weight in grams.';
@@ -104,6 +105,7 @@ ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_DAILY_REVENUE ALTER COLUMN gmv_same_day_la
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_CATEGORY_MONTHLY ALTER COLUMN month_start COMMENT 'First day of the month (Sao Paulo reporting days).';
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_CATEGORY_MONTHLY ALTER COLUMN market_code COMMENT 'Market at order time. Row access filters on this column.';
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_CATEGORY_MONTHLY ALTER COLUMN category COMMENT 'Product category in English; unknown when the product has none.';
+ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_CATEGORY_MONTHLY ALTER COLUMN category_label COMMENT 'Readable category name for reports, from DIM_PRODUCT (D6.9).';
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_CATEGORY_MONTHLY ALTER COLUMN orders COMMENT 'GMV orders with at least one item in the category. Does not add up across categories.';
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_CATEGORY_MONTHLY ALTER COLUMN items COMMENT 'Items sold in the category by GMV orders.';
 ALTER DYNAMIC TABLE ECOM_DB.GOLD.MART_CATEGORY_MONTHLY ALTER COLUMN gmv COMMENT 'GMV of the category in the month and market.';
