@@ -1,6 +1,7 @@
 -- Gold MART_CATEGORY_MONTHLY: GMV per category per month and market, with rank, share and
 -- change versus the previous month.
 -- Grain: one row per month_start, market_code and category that had GMV orders that month.
+-- category_label comes from DIM_PRODUCT (seed SILVER.REF_CATEGORY_LABEL, D6.9).
 -- Runs as: DATA_ENGINEER (owns Gold) on TRANSFORM_WH.
 -- Rerun: re-creates the table, and CREATE OR REPLACE drops the attached row access policy
 --   and tags. After any rerun, run sql/governance/03 and 04 again before anyone reads Gold.
@@ -16,6 +17,8 @@ WITH monthly AS (
     DATE_TRUNC('month', f.order_date_local) AS month_start,
     f.market_code,
     d.category,
+    -- One label per category (seed key), so grouping by it doesn't split rows.
+    d.category_label,
     -- One order can hold items from several categories, so order counts
     -- don't add up across categories; items and GMV do.
     COUNT(DISTINCT f.order_id) AS orders,
@@ -27,13 +30,14 @@ WITH monthly AS (
   -- that sits over another dynamic table.
   JOIN ECOM_DB.GOLD.DIM_PRODUCT d ON d.product_id = f.product_id
   WHERE f.is_gmv_order
-  GROUP BY 1, 2, 3
+  GROUP BY 1, 2, 3, 4
 ),
 ranked AS (
   SELECT
     month_start,
     market_code,
     category,
+    category_label,
     orders,
     items,
     gmv::NUMBER(14,2) AS gmv,
@@ -47,6 +51,7 @@ SELECT
   r.month_start,
   r.market_code,
   r.category,
+  r.category_label,
   r.orders,
   r.items,
   r.gmv,
