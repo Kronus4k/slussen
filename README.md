@@ -123,6 +123,14 @@ Key figures (Olist history plus the live feed, all markets):
 
 The whole platform has run on about 4 Snowflake credits over its first two weeks, including the full backfill. Guardrails: X-Small warehouses with 60-second auto-suspend, a warehouse resource monitor, an account budget that also covers serverless work, an AI quota, and Cortex limited to one role. Airflow runs locally in Docker; MWAA is documented as the production target only, because it bills by the hour even when idle.
 
+Latest baseline, 12 Oct to 5 Nov 2026: about 6.1 credits billed (warehouses 5.81, serverless tasks 0.25, AI functions 0.00), taken before any Cortex work.
+
+![Snowflake consumption, last 28 days (6.1 credits)](docs/cost/2026-11-05_consumption_28d.png)
+
+![Snowflake account overview, October 2026](docs/cost/2026-11-05_account_overview.png)
+
+Raw numbers: [docs/cost/2026-11-05_baseline.csv](docs/cost/2026-11-05_baseline.csv)
+
 ## Repository layout
 
 ```
@@ -160,24 +168,7 @@ Every significant choice is recorded with its reason and the rejected alternativ
 
 ## Roadmap
 
+- **In progress:** Terraform for the AWS and Snowflake setup (warehouses, databases, roles, grants, resource monitor, S3 and IAM), imported from the live account without changes; separate dev and prod environments later
+- **Next:** Cortex smoke test on the merged semantic view (#49), measured against the cost baseline; review enrichment with Cortex AI functions; Cortex Search over contracts and runbooks
 - Migrate Silver and Gold to dbt Core, run through Airflow with Astronomer Cosmos
 - Delivery and Seller Operations dashboard; Finance Settlement Reconciliation dashboard
-- Review enrichment with Cortex AI functions; Cortex Search over contracts and runbooks
-- Terraform for the AWS and Snowflake setup; separate dev and prod environments
-
-
-## Cost
-
-Total Snowflake spend from 12 Oct to 5 Nov 2026: about 6.1 credits billed (warehouses 5.81, serverless tasks 0.25). Baseline taken before any Cortex work, with AI functions at 0.00 credits.
-
-![Snowflake consumption, last 28 days (6.1 credits)](docs/cost/2026-11-05_consumption_28d.png)
-
-![Snowflake account overview, October 2026](docs/cost/2026-11-05_account_overview.png)
-
-Raw numbers: [docs/cost/2026-11-05_baseline.csv](docs/cost/2026-11-05_baseline.csv)
-
-## Roadmap
-
-- **Terraform (in progress):** Snowflake warehouses, databases, roles, grants and a resource monitor, plus the AWS S3 buckets and IAM role, imported from the live account without changes.
-- **Cortex (next):** the semantic view is merged (#49); a Cortex smoke test comes next, measured against the cost baseline above.
-- **dbt (planned):** move the Gold layer from SQL scripts to dbt models.
