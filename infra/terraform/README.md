@@ -60,52 +60,38 @@ Things that are deliberate and easy to break:
 
 - Terraform `1.11.4`.
 - An **encrypted** PKCS#8 key for `TERRAFORM_SVC`, stored **outside** the repo.
-- AWS SSO access to the state bucket (`aws sso login --profile <profile>`).
+- AWS SSO access to the state bucket.
 
-## How to run (PowerShell)
+## How to run (Windows cmd)
 
-1. Keep a personal env script outside the repo, e.g. `~\.slussen\terraform.env.ps1`
-   (never commit it):
+The environment comes from a personal script **outside the repo**,
+`%USERPROFILE%\.snowflake\tf_env.cmd`. It holds no secrets and sets only:
 
-   ```powershell
-   $env:SNOWFLAKE_ORGANIZATION_NAME     = "<org>"
-   $env:SNOWFLAKE_ACCOUNT_NAME          = "<account>"
-   $env:SNOWFLAKE_USER                  = "TERRAFORM_SVC"
-   $env:SNOWFLAKE_ROLE                  = "TERRAFORM_ROLE"
-   $env:SNOWFLAKE_AUTHENTICATOR         = "SNOWFLAKE_JWT"
-   $env:TF_VAR_snowflake_private_key_path = "$HOME\.snowflake\keys\terraform_svc_rsa_key.p8"
-   $env:AWS_PROFILE                     = "<sso-profile>"
-   $env:TF_STATE_BUCKET                 = "<state-bucket-name>"
-   ```
+- `SNOWFLAKE_ORGANIZATION_NAME`
+- `SNOWFLAKE_ACCOUNT_NAME`
+- `SNOWFLAKE_USER`
+- `SNOWFLAKE_ROLE`
+- `SNOWFLAKE_AUTHENTICATOR`
+- `TF_VAR_snowflake_private_key_path`
+- `AWS_PROFILE`
+- `TF_STATE_BUCKET`
 
-2. Load it into the current shell (dot-source), then set the key passphrase
-   interactively so it never lands in a file or in shell history:
+```bat
+call %USERPROFILE%\.snowflake\tf_env.cmd
+set /p SNOWFLAKE_PRIVATE_KEY_PASSPHRASE=Passphrase:
+cls
+aws sso login --profile %AWS_PROFILE%
+cd infra\terraform
+terraform init -backend-config="bucket=%TF_STATE_BUCKET%"
+terraform plan
+```
 
-   ```powershell
-   . $HOME\.slussen\terraform.env.ps1
+The passphrase lives only in the current cmd session; `cls` clears it from
+the screen. The bucket name is supplied at init time and never committed.
 
-   $sec = Read-Host "Key passphrase" -AsSecureString
-   $env:SNOWFLAKE_PRIVATE_KEY_PASSPHRASE = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-     [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
-   ```
-
-3. Initialise with the bucket supplied at init time (it is not in code):
-
-   ```powershell
-   cd infra\terraform
-   terraform init -backend-config="bucket=$env:TF_STATE_BUCKET"
-   ```
-
-4. Check and plan:
-
-   ```powershell
-   terraform fmt -check
-   terraform validate
-   terraform plan
-   ```
-
-   Expected on first adoption:
-   `Plan: 11 to import, 0 to add, 0 to change, 0 to destroy.`
+Expected on first adoption:
+`Plan: 11 to import, 0 to add, 0 to change, 0 to destroy.`
+After the imports are applied: `No changes.`
 
 **Stop if a plan shows any destroy, "must be replaced", or an in-place change
 on an imported object.** Fix the HCL to match the live object; never change the
@@ -116,4 +102,4 @@ plan has been reviewed.
 
 No account identifiers, bucket names, keys or passphrases are committed.
 `.gitignore` excludes `.terraform/`, `*.tfstate*`, `*.tfvars` (except
-`*.tfvars.example`), `*.p8`, `*.pem` and `crash.log`.
+`*.tfvars.example`), `*.tfplan`, `*.p8`, `*.pem` and `crash.log`.

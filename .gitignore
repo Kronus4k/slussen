@@ -31,4 +31,5 @@ airflow/logs/
 *.tfstate*
 *.tfvars
 !*.tfvars.example
+*.tfplan
 crash.log
