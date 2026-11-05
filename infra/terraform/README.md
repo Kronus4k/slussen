@@ -4,7 +4,8 @@ Terraform adoption of the **existing** Slussen Snowflake and AWS objects,
 brought under management *without changing them*: the configuration mirrors
 the live objects exactly and `imports.tf` adopts them into state. Session 1
 covered warehouses, `ECOM_DB` and the resource monitor; session 2 added the S3
-storage integration, its IAM role and the two S3 buckets.
+storage integration, its IAM role and the two S3 buckets; session 3 added
+account roles, the role hierarchy and privilege grants on the managed objects.
 
 | | |
 |---|---|
@@ -16,7 +17,9 @@ storage integration, its IAM role and the two S3 buckets.
 ## What is managed
 
 Source of truth for current Snowflake values: `inventory/snowflake_inventory_2026-11-05.csv`
-(trimmed to the in-scope objects; `DETAILS` is the `SHOW` output as JSON).
+(trimmed to the in-scope objects; `DETAILS` is the `SHOW` output as JSON) and
+`inventory/snowflake_grants_2026-11-05.csv` (`ACCOUNT_USAGE.GRANTS_TO_ROLES`,
+trimmed from 273 to the 86 in-scope rows).
 
 | File | Objects |
 |---|---|
@@ -26,6 +29,7 @@ Source of truth for current Snowflake values: `inventory/snowflake_inventory_202
 | `storage_integration.tf` | `SLUSSEN_S3_INT` (owned by SYSADMIN; allowed locations `validated/` and `audit/contract_violations/` only) |
 | `iam.tf` | IAM role `slussen-snowflake-integration` and its single inline policy `slussen-snowflake-read` (no attached managed policies) |
 | `s3.tf` | `slussen-lake-qwer` and the state bucket: `aws_s3_bucket`, `aws_s3_bucket_versioning`, `aws_s3_bucket_public_access_block` only |
+| `roles.tf` | 25 account roles, 42 role-to-role grants, 18 privilege grants (grouped per role and object), and their three `for_each` `import` blocks |
 | `imports.tf` | 20 `import` blocks for the objects above (11 from session 1, 9 from session 2) |
 
 The integration's role ARN is built from `data.aws_caller_identity`, and the
@@ -99,6 +103,40 @@ account ID.
 - Only `slussen-lake-qwer` and the state bucket exist with the `slussen`
   prefix (checked 2026-11-05); there are no other buckets to adopt.
 
+### Roles and grants
+
+`roles.tf` is driven by three locals, so adding a role or grant is a one-line
+change:
+
+- `account_roles`: role name => comment. Only `ORCHESTRATOR_ROLE` has a
+  comment (`Airflow: reads Bronze, writes Audit results`); the other 24 are
+  `null`, which matches the live roles.
+- `role_hierarchy`: parent role => granted roles. Built from the `GRANTED_ON =
+  ROLE` rows where both sides are in `account_roles` (42 grants).
+- `privilege_grants`: one entry per (role, object) with its privileges grouped
+  (18 resources covering 44 CSV rows): `USAGE` on `ECOM_DB`; `USAGE` / `CREATE …`
+  on the `AUDIT`, `BRONZE`, `SILVER`, `GOLD` schemas; `MONITOR`, `OPERATE`,
+  `USAGE` on `BI_WH`, `LOAD_WH`, `TRANSFORM_WH`; `USAGE` on `SLUSSEN_S3_INT`;
+  `EXECUTE TASK` + `EXECUTE MANAGED TASK` on the account for `TASK_EXECUTE`.
+  No in-scope grant on `COMPUTE_WH` or `GOVERNANCE` exists (the only ones are
+  to `PLATFORM_ADMIN`, see below).
+
+Things that are deliberate:
+
+- **`with_grant_option = false` on every grant**, matching `GRANT_OPTION =
+  FALSE` in the inventory. Flipping it plans a revoke and re-grant.
+- **`snowflake_grant_privileges_to_account_role` only tracks the privileges it
+  lists.** Live privileges not in the list (e.g. `OWNERSHIP`, object-level
+  grants) are ignored, not revoked. Removing a privilege from a list *does*
+  revoke it.
+- **`PLATFORM_ADMIN` is managed as a role only (D8.10).** Its grants are owned
+  by the governance deployment and are not in Terraform.
+- **Never revoke or add a grant in Snowflake to make a plan clean.** If a grant
+  diffs, fix the locals to match the account.
+- In the committed CSV, the account locator in `NAME` for the two `ACCOUNT`
+  rows is redacted to `<ACCOUNT_LOCATOR>`; Terraform does not use it
+  (`on_account = true`).
+
 ## Out of scope (not managed here, and why)
 
 | Object(s) | Reason |
@@ -108,9 +146,25 @@ account ID.
 | `SANDBOX`, `SNOWFLAKE_LEARNING_DB`, `USER$…` | Personal / scratch / Snowflake-provisioned, not platform |
 | `PUBLIC` schemas | Snowflake-created defaults, unused by the platform |
 | `SYSTEM$…` warehouses | Snowflake-managed |
-| Roles, grants, users | Separate RBAC workstream; adopting them carelessly can revoke access |
+| Users; `SNOWFLAKE_LEARNING_ROLE`; system roles | Users are a separate workstream; the learning role is Snowflake-provisioned; system roles are Snowflake-owned |
+| Grants: see "Grants not managed" below | |
 | Tables, views, dynamic tables, stages, pipes, semantic views | Owned by the SQL deployment in `sql/`, not Terraform |
 | Bucket policies, notifications, lifecycle, encryption; KMS keys; AWS tags | Wired to EventBridge, Snowpipe and KMS; see "AWS" above |
+
+### Grants not managed
+
+Counts are rows of the original 273-row `GRANTS_TO_ROLES` export (each row
+counted once, in this order; 86 rows are in scope, 187 are not).
+
+| Grants | Rows | Reason |
+|---|---|---|
+| `PRIVILEGE = OWNERSHIP` (tables 33, pipes 12, stages 2, file formats 2, views 2, stream 1, task 1) | 53 | Ownership is set by the SQL deployment that creates the object; transferring it through Terraform could break the object's grants and the pipelines that rely on them |
+| All other grants **to** `PLATFORM_ADMIN` (account 7, `ECOM_DB` 1, `GOVERNANCE` schema 5, role `DATA_ENGINEER` 1) | 14 | **D8.10:** `PLATFORM_ADMIN` is managed as a role only; its privileges belong to the governance deployment, separate from the infrastructure identity |
+| `GRANTED_ON` = `TABLE` (108), `VIEW` (2); `PIPE`, `STAGE`, `STREAM`, `TASK`, `FILE FORMAT` (0 beyond ownership) | 110 | Object-level grants are made by the SQL deployment in `sql/` alongside the objects themselves |
+| Anything on `ADMIN_DB`, `SANDBOX` or `SNOWFLAKE_LEARNING_DB` (all on `SNOWFLAKE_LEARNING_DB`, to `SNOWFLAKE_LEARNING_ROLE`) | 2 | Not platform objects (see table above) |
+| `USAGE` on role `CORTEX_USER_ROLE` (to the five analysts, `DATA_ENGINEER`, `EXEC`, `PRODUCT_OWNER`) | 8 | `CORTEX_USER_ROLE` is granted by ACCOUNTADMIN and is not in the managed role set, so the hierarchy rule (both sides managed) excludes it |
+| Future grants | 0 | Not in `GRANTS_TO_ROLES`. **Follow-up:** inventory with `SHOW FUTURE GRANTS IN SCHEMA …` and adopt with `snowflake_grant_privileges_to_account_role` `on_schema_object.future` |
+| Grants of custom roles to system roles (e.g. to `SYSADMIN`) | 0 | The export contains no such rows; they are owned by USERADMIN/SECURITYADMIN, and revoking one would orphan the role from the admin hierarchy |
 
 ## Prerequisites
 
@@ -148,7 +202,9 @@ The passphrase lives only in the current cmd session; `cls` clears it from
 the screen. The bucket name is supplied at init time and never committed.
 
 Expected on first adoption: `Plan: 11 to import, …` (session 1), then
-`Plan: 9 to import, 0 to add, 0 to change, 0 to destroy.` (session 2).
+`Plan: 9 to import, 0 to add, 0 to change, 0 to destroy.` (session 2), then
+`Plan: 85 to import, 0 to add, 0 to change, 0 to destroy.` (session 3: 25
+roles, 42 role grants, 18 privilege grants).
 After the imports are applied: `No changes.`
 
 **Stop if a plan shows any destroy, "must be replaced", or an in-place change
