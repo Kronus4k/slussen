@@ -119,7 +119,7 @@ Key figures (Olist history plus the live feed, all markets):
 - **Supply chain.** GitHub Actions pinned by commit SHA, Python dependencies installed with `--require-hashes`, base images pinned by digest.
 - **Measured, not assumed.** Warehouse generations were benchmarked before choosing one; see [docs/query_optimization.md](docs/query_optimization.md).
 - **Small pull requests.** One branch per component, squash merge, conventional commit messages, CI green before merge.
-- **Infrastructure as code.** 20 existing objects across Snowflake and AWS (warehouses, ECOM_DB and its schemas, the resource monitor, the storage integration, its IAM role and policy, and the S3 buckets) were imported into Terraform with zero drift. The plan is empty on main. Governance policies stay with PLATFORM_ADMIN on purpose (separation of duties). See [infra/terraform/README.md](infra/terraform/README.md).
+- **Infrastructure as code.** 105 existing objects across Snowflake and AWS (warehouses, ECOM_DB and its schemas, the resource monitor, the storage integration, its IAM role and policy, the S3 buckets, and the 25 account roles with their role hierarchy and grants) were imported into Terraform with zero drift. The plan is empty on main. Governance policies stay with PLATFORM_ADMIN on purpose (separation of duties). See [infra/terraform/README.md](infra/terraform/README.md).
 
 ## Cost
 
@@ -171,7 +171,7 @@ Every significant choice is recorded with its reason and the rejected alternativ
 
 ## Roadmap
 
-- **Next:** Terraform for roles and grants; separate dev and prod environments
+- **Next:** terraform plan on every pull request; future grants in Terraform; separate dev and prod environments
 - **Next:** Cortex smoke test on the merged semantic view (#49), measured against the cost baseline; review enrichment with Cortex AI functions; Cortex Search over contracts and runbooks
 - Migrate Silver and Gold to dbt Core, run through Airflow with Astronomer Cosmos
 - Delivery and Seller Operations dashboard; Finance Settlement Reconciliation dashboard
