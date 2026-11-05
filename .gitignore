@@ -14,6 +14,7 @@ __pycache__/
 # Data: raw files live outside the repo
 data/
 *.csv
+!infra/terraform/inventory/*.csv
 *.parquet
 
 # Editors / OS
@@ -24,3 +25,11 @@ Thumbs.db
 notes/
 local_data/
 airflow/logs/
+
+# Terraform
+.terraform/
+*.tfstate*
+*.tfvars
+!*.tfvars.example
+*.tfplan
+crash.log
