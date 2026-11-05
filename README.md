@@ -40,6 +40,7 @@ The platform answers four questions for executives, sales and growth:
 | Orchestration | Apache Airflow 3 in Docker Compose (LocalExecutor) |
 | Analytics | Power BI Desktop, Snowflake semantic view, Cortex Analyst |
 | Engineering | Python 3.13 package with pytest, hashed lock files, GitHub Actions CI, Bash deploy scripts with ShellCheck |
+| Infrastructure as code | Terraform 1.11.4 (snowflakedb/snowflake, hashicorp/aws), S3 backend with native locking |
 | Security | IAM Identity Center, least-privilege IAM roles, KMS, Secrets Manager, Snowflake key-pair service users |
 
 ## What is in the platform
@@ -118,6 +119,7 @@ Key figures (Olist history plus the live feed, all markets):
 - **Supply chain.** GitHub Actions pinned by commit SHA, Python dependencies installed with `--require-hashes`, base images pinned by digest.
 - **Measured, not assumed.** Warehouse generations were benchmarked before choosing one; see [docs/query_optimization.md](docs/query_optimization.md).
 - **Small pull requests.** One branch per component, squash merge, conventional commit messages, CI green before merge.
+- **Infrastructure as code.** 20 existing objects across Snowflake and AWS (warehouses, ECOM_DB and its schemas, the resource monitor, the storage integration, its IAM role and policy, and the S3 buckets) were imported into Terraform with zero drift. The plan is empty on main. Governance policies stay with PLATFORM_ADMIN on purpose (separation of duties). See [infra/terraform/README.md](infra/terraform/README.md).
 
 ## Cost
 
@@ -140,6 +142,7 @@ tests/              pytest suite
 airflow/dags/       producer DAGs, platform_checks, DQ SQL
 docker/             Airflow and validator images
 infra/              IAM policies, state machine, task definitions, S3 configs (templates)
+infra/terraform/    Terraform for Snowflake and AWS (imported, plan-clean)
 scripts/            bootstrap, deploy (cmd and Bash), checks
 sql/                setup, bronze, silver, gold, governance, checks, benchmarks
 docs/               data model, orchestration runbook, decisions, query optimization
@@ -168,7 +171,7 @@ Every significant choice is recorded with its reason and the rejected alternativ
 
 ## Roadmap
 
-- **In progress:** Terraform for the AWS and Snowflake setup (warehouses, databases, roles, grants, resource monitor, S3 and IAM), imported from the live account without changes; separate dev and prod environments later
+- **Next:** Terraform for roles and grants; separate dev and prod environments
 - **Next:** Cortex smoke test on the merged semantic view (#49), measured against the cost baseline; review enrichment with Cortex AI functions; Cortex Search over contracts and runbooks
 - Migrate Silver and Gold to dbt Core, run through Airflow with Astronomer Cosmos
 - Delivery and Seller Operations dashboard; Finance Settlement Reconciliation dashboard
