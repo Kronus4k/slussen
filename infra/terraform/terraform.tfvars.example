@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars (git-ignored) or, preferably, export
+# TF_VAR_snowflake_private_key_path instead. Never point this inside the repo.
+snowflake_private_key_path = "C:/Users/<you>/.snowflake/keys/terraform_svc_rsa_key.p8"
