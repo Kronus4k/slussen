@@ -19,15 +19,13 @@ locals {
 
   lake_bucket_name                = "slussen-lake-qwer"
   snowflake_integration_role_name = "slussen-snowflake-integration"
+}
 
-  # KMS key that encrypts the lake. The key itself is not managed here.
-  lake_kms_key_id = "098fa594-1cf7-4c09-9fb4-21f3557328db"
-  lake_kms_key_arn = format(
-    "arn:aws:kms:%s:%s:key/%s",
-    data.aws_region.current.region,
-    data.aws_caller_identity.current.account_id,
-    local.lake_kms_key_id,
-  )
+# KMS key that encrypts the lake, looked up by alias. The key itself is not
+# managed here; .arn resolves to the key ARN (not the alias ARN), which is
+# what the inline policy grants kms:Decrypt on.
+data "aws_kms_key" "lake" {
+  key_id = "alias/slussen-data"
 }
 
 resource "aws_iam_role" "snowflake_integration" {
@@ -96,7 +94,7 @@ resource "aws_iam_role_policy" "snowflake_read" {
         Sid      = "DecryptWithLakeKey"
         Effect   = "Allow"
         Action   = "kms:Decrypt"
-        Resource = local.lake_kms_key_arn
+        Resource = data.aws_kms_key.lake.arn
       },
     ]
   })

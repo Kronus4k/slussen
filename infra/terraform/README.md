@@ -28,9 +28,9 @@ Source of truth for current Snowflake values: `inventory/snowflake_inventory_202
 | `s3.tf` | `slussen-lake-qwer` and the state bucket: `aws_s3_bucket`, `aws_s3_bucket_versioning`, `aws_s3_bucket_public_access_block` only |
 | `imports.tf` | 20 `import` blocks for the objects above (11 from session 1, 9 from session 2) |
 
-Account-specific ARNs (the integration's role ARN, the KMS key ARN in the
-inline policy) are built from `data.aws_caller_identity` and `data.aws_region`;
-no account ID is committed. The state bucket name comes from
+The integration's role ARN is built from `data.aws_caller_identity`, and the
+KMS key ARN in the inline policy comes from `data.aws_kms_key` (alias
+`alias/slussen-data`); no account ID or key ARN is committed. The state bucket name comes from
 `var.state_bucket_name` (`TF_VAR_state_bucket_name`) because it contains the
 account ID.
 
@@ -94,8 +94,8 @@ account ID.
   lifecycle rules and default encryption. They are wired to EventBridge (the
   contract gate), Snowpipe and KMS, and adopting them carelessly could cut that
   wiring. Both buckets have `prevent_destroy`.
-- The KMS key that encrypts the lake is referenced by ARN in the inline
-  policy but is not managed.
+- The KMS key that encrypts the lake is looked up by alias
+  (`data.aws_kms_key.lake`) for the inline policy but is not managed.
 - Only `slussen-lake-qwer` and the state bucket exist with the `slussen`
   prefix (checked 2026-11-05); there are no other buckets to adopt.
 
