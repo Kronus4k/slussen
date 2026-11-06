@@ -159,6 +159,19 @@ Architecture and platform decisions for Slussen, with the reasoning and the alte
 | D6.8 | `MART_COHORT_RETENTION` is a dense grid (every cohort, market and month since the first GMV order up to the latest month, zeros included); the retention KPI is month-1 retention = `SUM(active_customers) / SUM(cohort_size)` at `months_since_first = 1` | Without zero rows, cohorts with no returners dropped out of the denominator and month-0 rows dominated; the plain definition is now correct for every consumer | Fixing only the BI measures; dropping the retention KPI |
 | D6.9 | Readable category labels come from a seed table `SILVER.REF_CATEGORY_LABEL` (one label per category, rerunnable `MERGE`; `unknown` is labelled Uncategorised), joined into `DIM_PRODUCT.category_label` and carried into `MART_CATEGORY_MONTHLY`; a category missing from the seed falls back to its name in title case; `category` stays the key | Reports show readable category names; one label per category, so grouping by the label doesn't split rows | Showing the raw snake_case names; title-casing the raw names without a seed |
 
+## Power BI report rules
+
+| ID | Decision | Why | Alternative rejected |
+| --- | --- | --- | --- |
+| D7.1 | Complete days only: calculated column `DIM_DATE[Is Complete Day]` = date before the last day with GMV in `MART_DAILY_REVENUE`; `[Data Through]` = max date where it is true (filter-independent); page filter `Is Complete Day = True` on Executive overview, Customers and retention, Categories and the tie-out; Pipeline health has none | The newest day is partial by design: on 3 Nov, 106 GMV orders vs 148–149 on complete days (the Sao Paulo day ends 03:00 UTC) | Not recorded |
+| D7.2 | "A day" = total GMV ÷ calendar days in the live period (`[Live GMV per Day]`, shared by both executive titles) | `AVERAGEX` skipped zero days and gave Norte 172 vs 160 | `AVERAGEX` over days |
+| D7.3 | One unit per chart: bar labels pick M or K from the largest bar in scope | Not recorded | Not recorded |
+| D7.4 | Exhibit 2 on Categories keeps static line colours: Health & beauty navy; every category that can reach any market's top 5 (Auto, Bed bath & table, Computer accessories, Furniture & decor, Sports & leisure, Watches & gifts) grey; titles name the real leader and the footer says so | Not recorded | Not recorded |
+| D7.5 | Pipeline status line at the bottom of Executive overview, import mode, grey; red (#C0392B) only if blocking failures > 0 | Not recorded | Not recorded |
+| D7.6 | Tie-out definition: `MART_DAILY_REVENUE` with `IS_ANALYSIS_WINDOW = TRUE` and `DATE_DAY <= Data Through`; pre-window orders are excluded by design with the page filter `IS_ANALYSIS_WINDOW = true` | 296 GMV orders (51,653.83 GMV) sit before the analysis window (Gold from 2024-10-27); the tie-out's 99,214 GMV orders are the in-window orders | A measure instead of a page filter |
+| D7.7 | Market slicers are per page: sync groups `Market exec` and `Market categories`; Customers keeps its own | Not recorded | Not recorded |
+| D7.8 | Category label fallback: `COALESCE(seed label, INITCAP(REPLACE(category,'_',' ')))`; labels unique (the `_2` duplicates keep "2") | A new Olist category never shows blank | Not recorded |
+
 ## Infrastructure as code, AI cost and the semantic view
 
 | ID | Decision | Why | Alternative rejected |
