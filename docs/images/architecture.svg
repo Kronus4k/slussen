@@ -212,18 +212,19 @@
   <text x="580" y="671" class="panel-h">Governance and security</text>
   <text x="580" y="718" class="bullet">• IAM Identity Center for people, narrow roles for workloads</text>
   <text x="580" y="750" class="bullet">• Encrypted lake, secrets kept in Secrets Manager</text>
-  <text x="580" y="782" class="bullet">• Snowflake persona roles, key-pair service users</text>
+  <text x="580" y="782" class="bullet">• Roles and grants as code, key-pair service users</text>
   <text x="580" y="814" class="bullet">• Row access by market, tag-based PII masking</text>
   <text x="580" y="846" class="bullet">• Business comments and tags on every Gold object</text>
 
   <rect x="1080" y="645" width="480" height="222" rx="10" fill="#FFFFFF" stroke="#C9D3DC"/>
   <path d="M1080 655 a10 10 0 0 1 10 -10 H1550 a10 10 0 0 1 10 10 V685 H1080 z" fill="#14304F"/>
   <text x="1100" y="671" class="panel-h">Engineering practice</text>
-  <text x="1100" y="718" class="bullet">• Python package with pytest suite</text>
-  <text x="1100" y="750" class="bullet">• GitHub Actions CI, hash-pinned lock files</text>
-  <text x="1100" y="782" class="bullet">• Bash deploy scripts linted with ShellCheck</text>
-  <text x="1100" y="814" class="bullet">• Images and actions pinned by digest or SHA</text>
-  <text x="1100" y="846" class="bullet">• Generated DDL guarded by sync tests</text>
+  <text x="1100" y="712" class="bullet">• Terraform: 105 live objects imported, plan clean</text>
+  <text x="1100" y="740" class="bullet">• Python package with pytest suite</text>
+  <text x="1100" y="768" class="bullet">• GitHub Actions CI, hash-pinned lock files</text>
+  <text x="1100" y="796" class="bullet">• Bash deploy scripts linted with ShellCheck</text>
+  <text x="1100" y="824" class="bullet">• Images and actions pinned by digest or SHA</text>
+  <text x="1100" y="852" class="bullet">• Generated DDL guarded by sync tests</text>
 
   <!-- legend -->
   <line x1="40" y1="895" x2="72" y2="895" stroke="#5B6B7C" stroke-width="1.6" marker-end="url(#arrow)"/>
