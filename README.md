@@ -6,7 +6,7 @@ Contract-enforced, event-driven ingestion from S3 into a Snowflake medallion pla
 
 - **Same number, two tools:** Cortex Analyst and Power BI both return 409,522.85 GMV for Norte, to the cent, under the same row access policy. → [Same question, same number](#same-question-same-number-cortex-analyst-vs-power-bi)
 - **Infrastructure as code:** 105 live Snowflake and AWS objects imported into Terraform with zero drift; plan is clean on main. → [infra/terraform/README.md](infra/terraform/README.md)
-- **Measured cost:** about 6.1 credits for the platform's first 3.5 weeks; Cortex Analyst at 0.067 credits per question. → [Cost](#cost)
+- **Measured cost:** about 6.1 credits from 12 Oct to 5 Nov 2026; Cortex Analyst at 0.067 credits per question. → [Cost](#cost)
 - **Governance:** every batch passes a data contract; row-level security by market applies in the dashboard and in the AI. → [Governance and security](#governance-and-security)
 - **Dashboard:** four Power BI pages from the live platform. → [Commercial Performance dashboard](#commercial-performance-dashboard)
 
