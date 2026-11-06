@@ -177,6 +177,8 @@ The whole platform has run on about 4 Snowflake credits over its first two weeks
 
 Latest baseline, 12 Oct to 5 Nov 2026: about 6.1 credits billed (warehouses 5.81, serverless tasks 0.25, AI functions 0.00), taken before any Cortex work.
 
+Cortex Analyst demo on 2026-11-06: 8 questions cost 0.536 credits (about 0.067 credits per question), measured in ACCOUNT_USAGE.METERING_DAILY_HISTORY (AI_SERVICES) and CORTEX_ANALYST_USAGE_HISTORY. AI services are billed separately from warehouses, so the warehouse resource monitor doesn't cap them; the account budget and the AI quota do.
+
 ![Snowflake consumption, last 28 days (6.1 credits)](docs/cost/2026-11-05_consumption_28d.png)
 
 ![Snowflake account overview, October 2026](docs/cost/2026-11-05_account_overview.png)
