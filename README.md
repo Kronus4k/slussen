@@ -130,6 +130,38 @@ Key figures (Olist history plus the live feed, all markets):
 
 Figures as of the 2026-11-06 refresh; operations batches keep arriving, so live numbers move.
 
+### Same question, same number: Cortex Analyst vs Power BI
+
+Both sides run as ANALYST_NORTE under the same Snowflake row access policy; Power BI uses "View as" Norte.
+
+![Cortex Analyst answers total GMV as 409,522.85 next to the Power BI GMV tile showing 0.4M for Norte](docs/images/cortex/01_gmv_cortex_vs_powerbi.png)
+
+*Q1, total GMV: Cortex Analyst returns 409,522.85; the Power BI tile rounds it to 0.4M, and the tie-out page below shows the exact figure.*
+
+![Power BI tie-out page viewed as Analyst Norte: GMV 409,522.85, 1840 GMV orders and average order value 222.57, tied out against Snowflake Gold](docs/images/cortex/01b_gmv_tieout_powerbi.png)
+
+*Power BI tie-out page as Analyst Norte: GMV 409,522.85, the same figure Cortex Analyst returns, to the cent.*
+
+![Cortex Analyst answers 1,840 GMV orders next to the Power BI GMV orders tile showing 1,840 for Norte](docs/images/cortex/02_orders_cortex_vs_powerbi.png)
+
+*Q2, GMV orders: 1,840 on both sides.*
+
+![Cortex Analyst returns an empty result for Sudeste GMV while the Power BI page shows Norte as the only market in scope](docs/images/cortex/05_rls_sudeste.png)
+
+*A Norte analyst asking about Sudeste gets nothing back: AI respects row-level security.*
+
+| Question | Cortex Analyst | Power BI | Match |
+| --- | --- | --- | --- |
+| Q1 Total GMV | 409,522.85 | 409,522.85 (tie-out page) | ✓ |
+| Q2 GMV orders | 1,840 | 1,840 | ✓ |
+| Q3 Average order value | 222.57 | 222.57 | ✓ |
+| Q4 Top 3 categories by GMV | Health & beauty 49,798.07; Watches & gifts 42,237.06; Sports & leisure 32,873.78 | Health & beauty 50K; Watches & gifts 42K; Sports & leisure 33K | ✓ |
+| Q5 GMV for Sudeste (as ANALYST_NORTE) | Empty result | Norte is the only market in scope | ✓ |
+
+The demo caught two real defects: two verified queries had drifted after a schema change and Cortex was silently skipping them, and Cortex counted 1,846 GMV orders against the dashboard's 1,840 until the analysis-window rule was aligned with the dashboard. Both were fixed in [#61](https://github.com/Kronus4k/slussen/pull/61).
+
+Screenshots for Q3 and Q4: [average order value](docs/images/cortex/03_aov_cortex_vs_powerbi.png), [top 3 categories](docs/images/cortex/04_categories_cortex_vs_powerbi.png).
+
 ## Engineering practice
 
 - **Idempotent by design.** Derived objects use `CREATE OR REPLACE`; stateful objects use `IF NOT EXISTS`; seed data uses `MERGE`; producers skip batches that were already decided; missed Airflow slots are caught up oldest first.
