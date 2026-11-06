@@ -173,7 +173,7 @@ Screenshots for Q3 and Q4: [average order value](docs/images/cortex/03_aov_corte
 
 ## Cost
 
-The whole platform has run on about 4 Snowflake credits over its first two weeks, including the full backfill. Guardrails: X-Small warehouses with 60-second auto-suspend, a warehouse resource monitor, an account budget that also covers serverless work, an AI quota, and Cortex limited to one role. Airflow runs locally in Docker; MWAA is documented as the production target only, because it bills by the hour even when idle.
+The whole platform has run on about 4 Snowflake credits over its first two weeks, including the full backfill. Guardrails: X-Small warehouses with 60-second auto-suspend, a warehouse resource monitor, an account budget that also covers serverless work, an AI quota, and Cortex limited to the roles granted CORTEX_USER_ROLE (the five market analysts, PRODUCT_OWNER, EXEC and DATA_ENGINEER, plus SYSADMIN for administration). Airflow runs locally in Docker; MWAA is documented as the production target only, because it bills by the hour even when idle.
 
 Latest baseline, 12 Oct to 5 Nov 2026: about 6.1 credits billed (warehouses 5.81, serverless tasks 0.25, AI functions 0.00), taken before any Cortex work.
 
