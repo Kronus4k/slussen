@@ -138,7 +138,7 @@ Both sides run as ANALYST_NORTE under the same Snowflake row access policy; Powe
 
 *Q1, total GMV: Cortex Analyst returns 409,522.85; the Power BI tile rounds it to 0.4M, and the tie-out page below shows the exact figure.*
 
-![Power BI tie-out page viewed as Analyst Norte: GMV 409,522.85, 1840 GMV orders and average order value 222.57, tied out against Snowflake Gold](docs/images/cortex/06_tie_out.png)
+![Power BI tie-out page viewed as Analyst Norte: GMV 409,522.85, 1840 GMV orders and average order value 222.57, tied out against Snowflake Gold](docs/images/cortex/01b_gmv_tieout_powerbi.png)
 
 *Power BI tie-out page as Analyst Norte: GMV 409,522.85, the same figure Cortex Analyst returns, to the cent.*
 
@@ -153,10 +153,10 @@ Both sides run as ANALYST_NORTE under the same Snowflake row access policy; Powe
 | Question | Cortex Analyst | Power BI | Match |
 | --- | --- | --- | --- |
 | Q1 Total GMV | 409,522.85 | 409,522.85 (tie-out page) | ✓ |
-| Q2 GMV orders | 1,840 | 1,840 | Yes |
-| Q3 Average order value | 222.57 | 222.57 | Yes |
-| Q4 Top 3 categories by GMV | Health & beauty 49,798.07; Watches & gifts 42,237.06; Sports & leisure 32,873.78 | Health & beauty 50K; Watches & gifts 42K; Sports & leisure 33K | Yes |
-| Q5 GMV for Sudeste (as ANALYST_NORTE) | Empty result | Norte is the only market in scope | Yes |
+| Q2 GMV orders | 1,840 | 1,840 | ✓ |
+| Q3 Average order value | 222.57 | 222.57 | ✓ |
+| Q4 Top 3 categories by GMV | Health & beauty 49,798.07; Watches & gifts 42,237.06; Sports & leisure 32,873.78 | Health & beauty 50K; Watches & gifts 42K; Sports & leisure 33K | ✓ |
+| Q5 GMV for Sudeste (as ANALYST_NORTE) | Empty result | Norte is the only market in scope | ✓ |
 
 The demo caught two real defects: two verified queries had drifted after a schema change and Cortex was silently skipping them, and Cortex counted 1,846 GMV orders against the dashboard's 1,840 until the analysis-window rule was aligned with the dashboard. Both were fixed in [#61](https://github.com/Kronus4k/slussen/pull/61).
 
