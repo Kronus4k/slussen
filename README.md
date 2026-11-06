@@ -99,18 +99,36 @@ Results land in `AUDIT.DQ_RESULTS` as counts only, never record values.
 | Categories | Top categories and their share of GMV |
 | Pipeline health | Latest load, freshness and DQ status from the audit schema |
 
+![Executive overview page: GMV tiles, daily GMV trend and GMV by market](docs/images/powerbi/01_executive_overview.png)
+
+*Executive overview: headline GMV and order-value tiles, the 7-day GMV trend with event markers, and GMV share by market.*
+
+![Customers and retention page: buyer tiles, cohort retention heatmap and spend quartiles](docs/images/powerbi/02_customers_retention.png)
+
+*Customers and retention: buyers, repeat-customer rate and month-1 retention, the monthly cohort heatmap, and lifetime GMV by spend quartile.*
+
+![Categories page: top 10 categories by item GMV and monthly share of the top 5](docs/images/powerbi/03_categories.png)
+
+*Categories: the top 10 categories by item GMV and the monthly share trend of the top 5.*
+
+![Pipeline health page: feed freshness against SLA and data-quality check results](docs/images/powerbi/04_pipeline_health.png)
+
+*Data-quality checks from the 2026-11-06 run. All error-level checks pass; two warn-level checks flag known edge cases (one Olist order without a payment and two status regressions in the operations feed) without blocking the run.*
+
 The proof point: a question to Cortex Analyst in plain language returns the same number as the matching dashboard tile, under the same market rules.
 
 Key figures (Olist history plus the live feed, all markets):
 
 | Metric | Value |
 | --- | --- |
-| GMV (item price + freight, excluding canceled and unavailable orders) | 15,803,063.92 |
-| GMV orders | 98,554 |
-| Average order value | 160.35 |
-| Median order value | 105.28 |
-| Repeat-customer rate (people with 2+ GMV orders over buyers) | 3.04 % |
-| Month-1 retention | 0.47 % |
+| GMV (item price + freight, excluding canceled and unavailable orders) | 16.0M |
+| GMV orders | 99,792 |
+| Average order value | 160.72 |
+| Median order value | 105.37 |
+| Repeat-customer rate (people with 2+ GMV orders over buyers) | 3.0 % |
+| Month-1 retention | 0.45 % |
+
+Figures as of the 2026-11-06 refresh; operations batches keep arriving, so live numbers move.
 
 ## Engineering practice
 
