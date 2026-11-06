@@ -99,6 +99,22 @@ Results land in `AUDIT.DQ_RESULTS` as counts only, never record values.
 | Categories | Top categories and their share of GMV |
 | Pipeline health | Latest load, freshness and DQ status from the audit schema |
 
+![Executive overview page: GMV tiles, daily GMV trend and GMV by market](docs/images/powerbi/01_executive_overview.png)
+
+*Executive overview: headline GMV and order-value tiles, the 7-day GMV trend with event markers, and GMV share by market.*
+
+![Customers and retention page: buyer tiles, cohort retention heatmap and spend quartiles](docs/images/powerbi/02_customers_retention.png)
+
+*Customers and retention: buyers, repeat-customer rate and month-1 retention, the monthly cohort heatmap, and lifetime GMV by spend quartile.*
+
+![Categories page: top 10 categories by item GMV and monthly share of the top 5](docs/images/powerbi/03_categories.png)
+
+*Categories: the top 10 categories by item GMV and the monthly share trend of the top 5.*
+
+![Pipeline health page: feed freshness against SLA and data-quality check results](docs/images/powerbi/04_pipeline_health.png)
+
+*Data-quality checks from the last run. All error-level checks pass; warn-level checks flag known edge cases (one Olist order without a payment, a few unknown products and status regressions in the operations feed) without blocking the run.*
+
 The proof point: a question to Cortex Analyst in plain language returns the same number as the matching dashboard tile, under the same market rules.
 
 Key figures (Olist history plus the live feed, all markets):
