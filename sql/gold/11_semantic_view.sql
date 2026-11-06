@@ -3,8 +3,9 @@
 -- Grain: one semantic view; each metric is defined exactly like its Power BI measure, so a
 --        natural-language answer and the matching dashboard tile return the same number.
 -- Runs as: DATA_ENGINEER (holds CREATE SEMANTIC VIEW on GOLD through GOLD_RW).
--- Safe to rerun: yes. CREATE OR ALTER keeps grants and tags; CREATE OR REPLACE would drop
---                them. Read access comes from the future grants in sql/setup/18.
+-- Safe to rerun: yes. CREATE OR REPLACE ... COPY GRANTS keeps the grants the analyst roles
+--                hold on the view (without COPY GRANTS they would be dropped). Read access
+--                comes from the future grants in sql/setup/18.
 --
 -- Row access: queries through the semantic view run as the caller, and RAP_MARKET on the
 -- Gold tables filters rows by market exactly as for direct queries.
@@ -14,13 +15,15 @@
 -- Semantic names differ from column names (total_gmv, not gmv) so no name is ambiguous.
 -- Verified queries are written against the logical tables (orders, dates, ...) and sit
 -- inside single quotes, so they contain no quotes: dates use DATE_FROM_PARTS.
+-- Where a dimension renames a Gold column, use the dimension name: d.in_analysis_window
+-- and p.product_category compile, the Gold names d.is_analysis_window and p.category don't.
 -- The rolling 28-day query anchors on the day before the latest day with GMV, because the
 -- latest day is still filling with 4-hourly live batches (same rule as the dashboard).
 
 USE ROLE DATA_ENGINEER;
 USE WAREHOUSE TRANSFORM_WH;
 
-CREATE OR ALTER SEMANTIC VIEW ECOM_DB.GOLD.SV_COMMERCIAL
+CREATE OR REPLACE SEMANTIC VIEW ECOM_DB.GOLD.SV_COMMERCIAL
 
   TABLES (
     orders AS ECOM_DB.GOLD.FCT_ORDERS
@@ -136,7 +139,7 @@ CREATE OR ALTER SEMANTIC VIEW ECOM_DB.GOLD.SV_COMMERCIAL
 
   COMMENT = 'Commercial performance: GMV, orders, categories, repeat customers and retention'
 
-  AI_SQL_GENERATION 'Dates are Sao Paulo reporting days. For trends over time, filter in_analysis_window = TRUE. GMV already excludes canceled and unavailable orders. Use total_gmv for revenue questions and item_gmv_total only for product category questions. Without a market in the question, answer for all markets the user can see. Round money to 2 decimals and rates to 2 decimals as percentages.'
+  AI_SQL_GENERATION 'Dates are Sao Paulo reporting days. Always filter in_analysis_window = TRUE, for totals and for trends, unless the user explicitly asks for all time; this matches the dashboard. GMV already excludes canceled and unavailable orders. Use total_gmv for revenue questions and item_gmv_total only for product category questions. Without a market in the question, answer for all markets the user can see. Round money to 2 decimals and rates to 2 decimals as percentages.'
 
   AI_VERIFIED_QUERIES (
     gmv_analysis_window AS (
@@ -147,7 +150,7 @@ CREATE OR ALTER SEMANTIC VIEW ECOM_DB.GOLD.SV_COMMERCIAL
                   SUM(IFF(o.is_gmv_order, 1, 0)) AS gmv_orders
            FROM orders AS o
            JOIN dates AS d ON o.order_date_local = d.date_day
-           WHERE d.is_analysis_window'
+           WHERE d.in_analysis_window'
     ),
     gmv_last_28_days AS (
       QUESTION 'How did GMV in the last 28 days compare with the 28 days before?'
@@ -175,13 +178,13 @@ CREATE OR ALTER SEMANTIC VIEW ECOM_DB.GOLD.SV_COMMERCIAL
       QUESTION 'What were the top 5 product categories by GMV in September 2026 and their share?'
       VERIFIED_AT 1793491200
       ONBOARDING_QUESTION TRUE
-      SQL 'SELECT p.category,
+      SQL 'SELECT p.product_category,
                   SUM(i.gmv) AS item_gmv,
                   RATIO_TO_REPORT(SUM(i.gmv)) OVER () AS share_of_item_gmv
            FROM items AS i
            JOIN products AS p ON i.product_id = p.product_id
            WHERE i.order_date_local BETWEEN DATE_FROM_PARTS(2026, 9, 1) AND DATE_FROM_PARTS(2026, 9, 30)
-           GROUP BY p.category
+           GROUP BY p.product_category
            QUALIFY ROW_NUMBER() OVER (ORDER BY SUM(i.gmv) DESC) <= 5
            ORDER BY item_gmv DESC'
     ),
@@ -201,7 +204,9 @@ CREATE OR ALTER SEMANTIC VIEW ECOM_DB.GOLD.SV_COMMERCIAL
                   / NULLIF(SUM(IFF(h.months_since_first = 1, h.cohort_size, 0)), 0) AS month_1_retention
            FROM cohorts AS h'
     )
-  );
+  )
+
+  COPY GRANTS;
 
 DESCRIBE SEMANTIC VIEW ECOM_DB.GOLD.SV_COMMERCIAL;
 
