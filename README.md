@@ -113,7 +113,7 @@ Results land in `AUDIT.DQ_RESULTS` as counts only, never record values.
 
 ![Pipeline health page: feed freshness against SLA and data-quality check results](docs/images/powerbi/04_pipeline_health.png)
 
-*Data-quality checks from the last run. All error-level checks pass; warn-level checks flag known edge cases (one Olist order without a payment, a few unknown products and status regressions in the operations feed) without blocking the run.*
+*Data-quality checks from the 2026-11-06 run. All error-level checks pass; two warn-level checks flag known edge cases (one Olist order without a payment and two status regressions in the operations feed) without blocking the run.*
 
 The proof point: a question to Cortex Analyst in plain language returns the same number as the matching dashboard tile, under the same market rules.
 
@@ -121,12 +121,14 @@ Key figures (Olist history plus the live feed, all markets):
 
 | Metric | Value |
 | --- | --- |
-| GMV (item price + freight, excluding canceled and unavailable orders) | 15,803,063.92 |
-| GMV orders | 98,554 |
-| Average order value | 160.35 |
-| Median order value | 105.28 |
-| Repeat-customer rate (people with 2+ GMV orders over buyers) | 3.04 % |
-| Month-1 retention | 0.47 % |
+| GMV (item price + freight, excluding canceled and unavailable orders) | 16.0M |
+| GMV orders | 99,792 |
+| Average order value | 160.72 |
+| Median order value | 105.37 |
+| Repeat-customer rate (people with 2+ GMV orders over buyers) | 3.0 % |
+| Month-1 retention | 0.45 % |
+
+Figures as of the 2026-11-06 refresh; operations batches keep arriving, so live numbers move.
 
 ## Engineering practice
 
