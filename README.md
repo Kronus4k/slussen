@@ -136,7 +136,11 @@ Both sides run as ANALYST_NORTE under the same Snowflake row access policy; Powe
 
 ![Cortex Analyst answers total GMV as 409,522.85 next to the Power BI GMV tile showing 0.4M for Norte](docs/images/cortex/01_gmv_cortex_vs_powerbi.png)
 
-*Q1, total GMV: Cortex Analyst returns 409,522.85; the Power BI tile shows 0.4M.*
+*Q1, total GMV: Cortex Analyst returns 409,522.85; the Power BI tile rounds it to 0.4M, and the tie-out page below shows the exact figure.*
+
+![Power BI tie-out page viewed as Analyst Norte: GMV 409,522.85, 1840 GMV orders and average order value 222.57, tied out against Snowflake Gold](docs/images/cortex/06_tie_out.png)
+
+*Power BI tie-out page as Analyst Norte: GMV 409,522.85, the same figure Cortex Analyst returns, to the cent.*
 
 ![Cortex Analyst answers 1,840 GMV orders next to the Power BI GMV orders tile showing 1,840 for Norte](docs/images/cortex/02_orders_cortex_vs_powerbi.png)
 
@@ -148,7 +152,7 @@ Both sides run as ANALYST_NORTE under the same Snowflake row access policy; Powe
 
 | Question | Cortex Analyst | Power BI | Match |
 | --- | --- | --- | --- |
-| Q1 Total GMV | 409,522.85 | 0.4M (tile rounds) | Yes |
+| Q1 Total GMV | 409,522.85 | 409,522.85 (tie-out page) | ✓ |
 | Q2 GMV orders | 1,840 | 1,840 | Yes |
 | Q3 Average order value | 222.57 | 222.57 | Yes |
 | Q4 Top 3 categories by GMV | Health & beauty 49,798.07; Watches & gifts 42,237.06; Sports & leisure 32,873.78 | Health & beauty 50K; Watches & gifts 42K; Sports & leisure 33K | Yes |
